@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+*.log
+.DS_Store
+.env
+.venv
+node_modules/
+full_results_mutations/
+full_results/
+full_results_random/ 
