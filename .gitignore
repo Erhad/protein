@@ -22,4 +22,18 @@ env/
 
 # Local development
 *.log
-results/ 
+results/
+
+# LaTeX build
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+thesis/aalto/*.xmpdata
+thesis/aalto/pdfa.xmpi 

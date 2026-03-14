@@ -1,0 +1,167 @@
+reading_list:
+
+  - id: LIT001
+    title: "Navigating the protein fitness landscape with Gaussian processes"
+    authors: Romero, Krause & Arnold
+    year: 2013
+    venue: PNAS
+    url: https://www.pnas.org/doi/10.1073/pnas.1215251110
+    status: unread
+    relevance: foundational
+    key_contribution: |
+      First paper to use GPs for protein fitness landscape modeling.
+      Showed that uncertainty quantification enables efficient search.
+      Applied to chimeric cytochrome P450s.
+    relevance_to_us: |
+      We are using RF instead of GP. This is where GP for protein BO started.
+      Should read to understand why GP was the original choice.
+
+  - id: LIT002
+    title: "Machine learning-assisted directed protein evolution with combinatorial libraries"
+    authors: Wu et al.
+    year: 2019
+    venue: PNAS
+    url: https://www.pnas.org/doi/10.1073/pnas.1901979116
+    status: unread
+    relevance: high
+    key_contribution: |
+      Proposed MLDE workflow: train ML surrogate on small labelled set,
+      predict fitness of combinatorial library, select top candidates.
+      Validated on GB1 landscape. One-hot encoding + ridge regression
+      performed surprisingly well.
+    relevance_to_us: |
+      Our approach is essentially this paper. We are at the 2019 baseline.
+
+  - id: LIT003
+    title: "Machine-learning-guided directed evolution for protein engineering"
+    authors: Yang, Wu & Arnold
+    year: 2019
+    venue: Nature Methods
+    url: https://www.nature.com/articles/s41592-019-0496-6
+    status: unread
+    relevance: high
+    key_contribution: |
+      Canonical review/framework for MLDE. Defines the workflow that
+      most subsequent papers follow.
+    relevance_to_us: |
+      Conceptual framework paper. Read to understand vocabulary and
+      standard experimental design in the field.
+
+  - id: LIT004
+    title: "Informed training set design enables efficient machine learning-assisted directed evolution"
+    authors: Wittmann et al.
+    year: 2021
+    venue: Cell Systems
+    url: https://www.cell.com/cell-systems/fulltext/S2405-4712(21)00286-6
+    status: unread
+    relevance: high
+    key_contribution: |
+      Studied encoding and training set design choices on GB1.
+      Found one-hot encoding + linear models can be surprisingly competitive.
+      Handling of low-fitness variants in training set matters significantly.
+    relevance_to_us: |
+      Directly explains our EXP001 finding — one-hot mutations beating ESM2.
+      Must read. Also relevant to our training set construction.
+
+  - id: LIT005
+    title: "Active learning-assisted directed evolution (ALDE)"
+    authors: Yang et al.
+    year: 2025
+    venue: Nature Communications
+    url: https://www.nature.com/articles/s41467-025-55987-8
+    status: read  # deep read complete — see insights/LIT005_ALDE_deep_read.yaml
+    relevance: critical
+    key_contribution: |
+      Iterative ML-assisted DE with uncertainty quantification (ALDE).
+      Benchmarks ESM2, GPs, DNN ensembles, deep kernel learning, and
+      various acquisition functions head-to-head.
+      KEY FINDING: ESM2 works better with deep learning models (DNN ensembles,
+      deep kernel learning). Non-deep-learning models (RF, GP) learn better
+      from low-dimensional encodings like AAIndex/Georgiev.
+      Wet-lab validated: improved cyclopropanation yield from 12% to 93%
+      in 3 rounds.
+    relevance_to_us: |
+      CRITICAL. Directly explains our results. We are using ESM2 (high-dim)
+      with RF (non-deep model) — the exact combination ALDE found suboptimal.
+      Either switch to DNN ensemble / deep kernel learning with ESM2,
+      or switch to low-dim encoding (AAIndex) with RF/GP.
+
+  - id: LIT006
+    title: "Evaluation of machine learning-assisted directed evolution across diverse combinatorial landscapes"
+    authors: Johnston et al.
+    year: 2025
+    venue: Cell Systems
+    url: https://www.sciencedirect.com/science/article/abs/pii/S2405471225002200
+    status: unread
+    relevance: high
+    key_contribution: |
+      16 combinatorial fitness landscapes across 6 proteins.
+      Asks when MLDE, ALDE, and focused training offer advantage over DE.
+      Comprehensive benchmarking across diverse landscapes.
+    relevance_to_us: |
+      GFP may not be a representative benchmark. GB1 is the field standard.
+      Should validate findings on GB1.
+
+  - id: LIT007
+    title: "Accelerating Bayesian Optimization for Biological Sequence Design with Denoising Autoencoders (LaMBO)"
+    authors: Stanton et al.
+    year: 2022
+    venue: ICML
+    url: https://proceedings.mlr.press/v162/stanton22a.html
+    status: unread
+    relevance: medium
+    key_contribution: |
+      Jointly trains denoising autoencoder with GP head. Gradient-based
+      optimization of acquisition functions in latent space.
+      Introduces fluorescent protein benchmark.
+    relevance_to_us: |
+      Latent space BO — more sophisticated than our embedding+surrogate approach.
+      Sets a high bar for what BO in embedding space can do.
+
+  - id: LIT008
+    title: "Directed Evolution of Proteins via Bayesian Optimization in Embedding Space"
+    authors: Soldat, M. and Kléma, J.  # Matoušs Soldát and Jiří Kléma
+    year: 2025  # arXiv 2509.04998 = September 2025 preprint; venue/year CHECK needed
+    venue: arXiv preprint (possibly IEEE BIBM — needs verification)
+    url: https://arxiv.org/abs/2509.04998
+    status: fetched_abstract
+    relevance: high
+    key_contribution: |
+      Combines BO with ESM-1b embeddings. Uses GP surrogate.
+      Outperforms ODBO and traditional DE baselines.
+      Shows PLM embeddings + GP outperforms regression-based approaches.
+    relevance_to_us: |
+      Most similar to our approach. Uses GP not RF — supports HYP001a
+      that our RF is the bottleneck, not ESM2.
+
+  - id: LIT009
+    title: "AdaLead: A simple and robust adaptive greedy search algorithm for sequence design"
+    authors: Sinai et al.
+    year: 2020
+    venue: arXiv
+    url: https://arxiv.org/abs/2010.02141
+    status: fetched_abstract
+    relevance: medium
+    key_contribution: |
+      Simple greedy hill-climbing baseline. Iteratively mutates and selects
+      top sequences using a predictive model as oracle.
+      Despite simplicity, competitive with complex BO approaches.
+    relevance_to_us: |
+      Standard baseline we should compare against. If our BO doesn't beat
+      AdaLead, the BO complexity isn't justified.
+
+  - id: LIT010
+    title: "Comprehensive characterization of the GB1 combinatorial landscape"
+    authors: Wu et al.  # CHECK: verify actual authors — may be Olson et al. 2014 Current Biology, not Wu 2016 eLife
+    year: 2016  # CHECK: the GB1 4-site dataset used by MLDE papers may originate from Wu et al. 2019 PNAS (who measured it themselves), not a separate 2016 paper
+    venue: eLife  # CHECK: elifesciences.org/articles/16965 — needs verification
+    url: https://elifesciences.org/articles/16965
+    status: fetched_abstract
+    relevance: medium
+    key_contribution: |
+      160,000 variants of GB1 (4 sites × 20 AAs). Measures binding to IgG-Fc.
+      Rich epistatic structure — 12 of top 20 epistatic interactions among
+      the 4 sites. Standard benchmark for protein ML.
+    relevance_to_us: |
+      We use GFP. GB1 is the field standard. Should run experiments on GB1
+      to be comparable with published results.
