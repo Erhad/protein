@@ -12,6 +12,18 @@ build/
 venv/
 env/
 .env/
+.venv/
+
+# Large data files (reproduced via precompute/download scripts)
+*.npz
+*.dylib
+v1/data/trpb/trpb_fitness.csv
+
+# macOS
+.DS_Store
+
+# Results (large, reproduced via experiments)
+results/
 
 # IDE files
 .vscode/
