@@ -2,9 +2,9 @@
 Random Forest surrogates with configurable acquisition functions.
 
 Three variants, all sharing the same RF backbone (identical to EVOLVEpro):
-  RandomForestOptimizer(acquisition="greedy")  — deterministic top-k (= EVOLVEpro)
-  RandomForestOptimizer(acquisition="ucb")     — mean + beta * std_across_trees
-  RandomForestOptimizer(acquisition="ts")      — Thompson Sampling via random tree draw
+  RandomForestOptimizer(acquisition="greedy")       — deterministic top-k (= EVOLVEpro)
+  RandomForestOptimizer(acquisition="ucb")          — mean + beta * std_across_trees
+  RandomForestOptimizer(acquisition="ts", ts_k=k)  — Thompson Sampling via sub-ensemble draw
 
 Acquisition details
 -------------------
@@ -18,17 +18,23 @@ UCB
   scores = mean + beta * std
   select top-k by scores
 
-TS
+TS (sub-ensemble)
+  ts_k controls how many trees are averaged per draw:
+    ts_k=1   — single tree (original, highest variance / most exploratory)
+    ts_k=20  — 20-tree mean (matches ALDE's 1/5 ensemble ratio: 20% of 100 trees)
+    ts_k=100 — full ensemble mean (collapses to greedy)
+
   For each position i in batch:
-    tree_i ~ Uniform(RF.estimators_)    # sample a random tree
-    scores_i = tree_i.predict(X_pool[remaining])
+    draw ts_k trees without replacement from RF.estimators_
+    scores_i = mean prediction of those ts_k trees on remaining pool
     select argmax(scores_i); remove from pool
-  This is the RF analogue of Bayesian TS: each "function draw" is one tree from
-  the ensemble, which is a leaf-constant interpolation of the training data.
-  Per-step resampling gives O(batch_size) diversity.
+
+  Per-step resampling gives diversity across the batch.
+  Larger ts_k = smoother function draw = less noisy = closer to greedy.
 """
 
 import numpy as np
+from joblib import Parallel, delayed
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 
@@ -43,6 +49,7 @@ class RandomForestOptimizer(Optimizer):
     acquisition  : 'greedy' | 'ucb' | 'ts'
     beta         : UCB exploration coefficient (default 2.0)
     n_estimators : number of trees in the forest (default 100)
+    ts_k         : trees per sub-ensemble draw for TS (default 1; 20 matches ALDE 1/5 ratio)
     """
 
     def __init__(
@@ -51,6 +58,7 @@ class RandomForestOptimizer(Optimizer):
         acquisition: str = "greedy",
         beta: float = 2.0,
         n_estimators: int = 100,
+        ts_k: int = 1,
     ):
         super().__init__(seed)
         assert acquisition in ("greedy", "ucb", "ts"), (
@@ -58,6 +66,7 @@ class RandomForestOptimizer(Optimizer):
         )
         self.acquisition = acquisition
         self.beta = beta
+        self.ts_k = ts_k
         self.scaler = StandardScaler()
         self.model = RandomForestRegressor(
             n_estimators=n_estimators,
@@ -99,8 +108,10 @@ class RandomForestOptimizer(Optimizer):
         where μ is the mean and σ is the std across all tree predictions.
         With β=0 this collapses to greedy; larger β trades exploitation for exploration.
         """
-        tree_preds = np.array(
-            [tree.predict(X_scaled) for tree in self.model.estimators_]
+        tree_preds = np.vstack(
+            Parallel(n_jobs=-1, prefer="threads")(
+                delayed(tree.predict)(X_scaled) for tree in self.model.estimators_
+            )
         )  # shape: (n_estimators, n_pool)
         mean = tree_preds.mean(axis=0)
         std  = tree_preds.std(axis=0)
@@ -109,29 +120,43 @@ class RandomForestOptimizer(Optimizer):
 
     def _select_ts(self, X_scaled: np.ndarray, batch_size: int) -> np.ndarray:
         """
-        Thompson Sampling via per-step random tree draw.
+        Thompson Sampling via per-step sub-ensemble draw.
 
         At each step i in the batch:
-          1. Sample one tree uniformly from the ensemble.
-          2. Evaluate that tree on the remaining pool candidates.
+          1. Sample ts_k trees without replacement from the ensemble.
+          2. Average their predictions on the remaining pool (smoother function draw).
           3. Select the argmax; remove from the remaining pool.
 
-        This gives batch_size independent "function draws" with natural diversity
-        — different trees can disagree, so the batch explores multiple modes.
-        Unlike greedy, the same high-scoring cluster cannot dominate the entire batch.
+        ts_k=1   → single tree (highest noise / most exploratory)
+        ts_k=20  → matches ALDE's 1/5 ensemble ratio (20 of 100 trees)
+        ts_k=100 → collapses to greedy (full ensemble mean)
+
+        Per-step resampling gives diversity across the batch.
         """
+        estimators = self.model.estimators_
+        k = min(self.ts_k, len(estimators))
+
+        # Precompute all tree predictions once — shape (n_estimators, n_pool).
+        # Uses threads (not processes) since sklearn tree.predict releases the GIL.
+        all_preds = np.vstack(
+            Parallel(n_jobs=-1, prefer="threads")(
+                delayed(tree.predict)(X_scaled) for tree in estimators
+            )
+        )  # (n_estimators, n_pool)
+
+        mask = np.ones(len(X_scaled), dtype=bool)
         remaining = np.arange(len(X_scaled))
         selected  = []
-        estimators = self.model.estimators_
 
         for _ in range(batch_size):
             if len(remaining) == 0:
                 break
-            # Draw one tree — independent per step
-            tree = self.rng.choice(estimators)
-            scores = tree.predict(X_scaled[remaining])
+            idx    = self.rng.choice(len(estimators), size=k, replace=False)
+            scores = all_preds[idx][:, remaining].mean(axis=0)
             best_local = int(np.argmax(scores))
-            selected.append(int(remaining[best_local]))
-            remaining = np.delete(remaining, best_local)
+            best_global = int(remaining[best_local])
+            selected.append(best_global)
+            mask[best_global] = False
+            remaining = np.where(mask)[0]
 
         return np.array(selected)

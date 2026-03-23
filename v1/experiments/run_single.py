@@ -74,9 +74,15 @@ def make_method(method: str, seed: int):
     elif method == "rf_ucb":
         from methods.rf_variants import RandomForestOptimizer
         return RandomForestOptimizer(seed=seed, acquisition="ucb", beta=2.0)
-    elif method == "rf_ts":
+    elif method == "rf_ts" or method == "rf_ts_k1":
         from methods.rf_variants import RandomForestOptimizer
-        return RandomForestOptimizer(seed=seed, acquisition="ts")
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=1)
+    elif method == "rf_ts_k10":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=10)
+    elif method == "rf_ts_k20":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=20)
     elif method == "boes_ei":
         from methods.boes import BOES
         return BOES(seed=seed, acquisition="ei")
@@ -91,16 +97,17 @@ def make_method(method: str, seed: int):
 
 
 def run(landscape: str, method: str, batch_size: int, seed: int) -> dict:
+    # Check before doing any computation
     out_path = os.path.join(
         ROOT, "results", "raw",
         f"{landscape}_{method}_{batch_size}.jsonl"
     )
     if os.path.exists(out_path):
         with open(out_path) as f:
-            for line in f:
-                if json.loads(line)["seed"] == seed:
-                    print(f"[{landscape}|{method}|bs={batch_size}|seed={seed}] already done, skipping.", flush=True)
-                    return {}
+            existing_seeds = {json.loads(line)["seed"] for line in f}
+        if seed in existing_seeds:
+            print(f"  [{landscape}|{method}|bs={batch_size}|seed={seed}] already done, skipping.")
+            return None
 
     print(f"[{landscape}|{method}|bs={batch_size}|seed={seed}]", flush=True)
 
@@ -144,20 +151,7 @@ def run(landscape: str, method: str, batch_size: int, seed: int) -> dict:
         "selection_order": labeled_idx,   # length = TOTAL_BUDGET
     }
 
-    # Append to shared JSONL file — skip if seed already present
-    out_path = os.path.join(
-        ROOT, "results", "raw",
-        f"{landscape}_{method}_{batch_size}.jsonl"
-    )
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    existing_seeds = set()
-    if os.path.exists(out_path):
-        with open(out_path) as f:
-            for line in f:
-                existing_seeds.add(json.loads(line)["seed"])
-    if seed in existing_seeds:
-        print(f"  Seed {seed} already in {os.path.basename(out_path)}, skipping.")
-        return record
     with open(out_path, "a") as f:
         f.write(json.dumps(record) + "\n")
 
@@ -168,7 +162,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--landscape",  required=True, choices=list(LANDSCAPE_CFG))
     parser.add_argument("--method",     required=True,
-                        choices=["evolvepro", "rf_greedy", "rf_ucb", "rf_ts",
+                        choices=["evolvepro", "rf_greedy", "rf_ucb",
+                                 "rf_ts", "rf_ts_k1", "rf_ts_k10", "rf_ts_k20",
                                  "boes_ei", "boes_ts", "mutation_stats"])
     parser.add_argument("--batch_size", required=True, type=int)
     parser.add_argument("--seed",       required=True, type=int)

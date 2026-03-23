@@ -42,7 +42,7 @@ def main():
     parser.add_argument("--batch_sizes", nargs="+", type=int, default=ALL_BATCH_SIZES)
     parser.add_argument("--seeds",       type=int, default=10,
                         help="Number of seeds (0..seeds-1)")
-    parser.add_argument("--workers",     type=int, default=1)
+    parser.add_argument("--workers",     type=int, default=min(cpu_count(), 8))
     args = parser.parse_args()
 
     jobs = [
