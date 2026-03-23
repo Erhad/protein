@@ -32,6 +32,7 @@ v1/data/trpb/trpb_fitness.csv
 
 # Local development
 *.log
+v1/results/raw/gfp_random_1_seed*.csv
 
 # LaTeX build
 *.aux
