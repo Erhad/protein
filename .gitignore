@@ -22,8 +22,6 @@ v1/data/trpb/trpb_fitness.csv
 # macOS
 .DS_Store
 
-# Results (large, reproduced via experiments)
-results/
 
 # IDE files
 .vscode/
@@ -34,7 +32,6 @@ results/
 
 # Local development
 *.log
-results/
 
 # LaTeX build
 *.aux
