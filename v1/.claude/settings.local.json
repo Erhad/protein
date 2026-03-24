@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:www.pnas.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.nature.com)",
+      "WebFetch(domain:zenodo.org)",
+      "Bash(uv pip:*)",
+      "Bash(/Users/aleksanderheino/protein/v1/.venv/bin/python3 -c \"\nfrom huggingface_hub import list_datasets\nresults = list\\(list_datasets\\(search='TrpB', limit=10\\)\\)\nfor r in results:\n    print\\(r.id\\)\n\" 2>&1)",
+      "Bash(/Users/aleksanderheino/protein/v1/.venv/bin/python3 -c \":*)",
+      "Bash(.venv/bin/python3 data/download_datasets.py gb1 trpb 2>&1)",
+      "Bash(.venv/bin/python3 -c \"\nimport pandas as pd\ngfp = pd.read_csv\\('data/gfp/sequences_scores.csv'\\)\ngb1 = pd.read_csv\\('data/gb1/gb1_fitness.csv'\\)\ntrpb = pd.read_csv\\('data/trpb/trpb_fitness.csv'\\)\nprint\\('=== GFP ==='\\)\nprint\\(gfp.columns.tolist\\(\\)\\)\nprint\\(gfp.shape\\)\nprint\\(gfp.head\\(2\\).to_string\\(\\)\\)\nprint\\(\\)\nprint\\('=== GB1 ==='\\)\nprint\\(gb1.columns.tolist\\(\\)\\)\nprint\\(gb1.shape\\)\nprint\\(gb1.head\\(2\\).to_string\\(\\)\\)\nprint\\('seq len:', len\\(gb1.iloc[0]['protein']\\)\\)\nprint\\(\\)\nprint\\('=== TrpB ==='\\)\nprint\\(trpb.columns.tolist\\(\\)\\)\nprint\\(trpb.shape\\)\nprint\\(trpb.head\\(2\\).to_string\\(\\)\\)\nprint\\('seq len:', len\\(trpb.iloc[0]['protein']\\)\\)\n\" 2>&1)",
+      "Bash(cp /Users/aleksanderheino/protein/aws_lambda_bo/data/sequence_and_score.csv /Users/aleksanderheino/protein/v1/data/gfp/sequences_scores.csv)",
+      "Bash(__NEW_LINE_36c2c7e7aaea761f__ .venv/bin/python3 -c \":*)",
+      "Bash(.venv/bin/python3 -c \"\nimport torch\nprint\\('PyTorch:', torch.__version__\\)\nprint\\('MPS available:', torch.backends.mps.is_available\\(\\)\\)\nprint\\('CUDA available:', torch.cuda.is_available\\(\\)\\)\nimport esm\nprint\\('ESM:', esm.__version__ if hasattr\\(esm, '__version__'\\) else 'ok'\\)\n\")",
+      "Bash(.venv/bin/python3 precompute/compute_embeddings.py gfp gb1 trpb 2>&1)",
+      "WebFetch(domain:scicomp.aalto.fi)",
+      "Bash(gh api:*)",
+      "WebSearch",
+      "Bash(wc -l /Users/aleksanderheino/protein/v1/results/raw/*.jsonl)"
+    ]
+  }
+}
