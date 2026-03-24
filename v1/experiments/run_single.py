@@ -77,6 +77,9 @@ def make_method(method: str, seed: int):
     elif method == "rf_ts" or method == "rf_ts_k1":
         from methods.rf_variants import RandomForestOptimizer
         return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=1)
+    elif method == "rf_ts_k5":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=5)
     elif method == "rf_ts_k10":
         from methods.rf_variants import RandomForestOptimizer
         return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=10)
@@ -163,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("--landscape",  required=True, choices=list(LANDSCAPE_CFG))
     parser.add_argument("--method",     required=True,
                         choices=["evolvepro", "rf_greedy", "rf_ucb",
-                                 "rf_ts", "rf_ts_k1", "rf_ts_k10", "rf_ts_k20",
+                                 "rf_ts", "rf_ts_k1", "rf_ts_k5", "rf_ts_k10", "rf_ts_k20",
                                  "boes_ei", "boes_ts", "mutation_stats"])
     parser.add_argument("--batch_size", required=True, type=int)
     parser.add_argument("--seed",       required=True, type=int)

@@ -144,19 +144,23 @@ class RandomForestOptimizer(Optimizer):
             )
         )  # (n_estimators, n_pool)
 
-        mask = np.ones(len(X_scaled), dtype=bool)
+        # Pre-sample all tree subsets and compute score vectors upfront.
+        # (batch_size, k, n_pool) → mean → (batch_size, n_pool); peak ~2GB, fine on modern hardware.
+        idx_matrix = np.vstack([
+            self.rng.choice(len(estimators), size=k, replace=False)
+            for _ in range(batch_size)
+        ])
+        score_matrix = all_preds[idx_matrix].mean(axis=1)  # (batch_size, n_pool)
+
         remaining = np.arange(len(X_scaled))
         selected  = []
 
-        for _ in range(batch_size):
+        for i in range(batch_size):
             if len(remaining) == 0:
                 break
-            idx    = self.rng.choice(len(estimators), size=k, replace=False)
-            scores = all_preds[idx][:, remaining].mean(axis=0)
-            best_local = int(np.argmax(scores))
+            best_local  = int(np.argmax(score_matrix[i][remaining]))
             best_global = int(remaining[best_local])
             selected.append(best_global)
-            mask[best_global] = False
-            remaining = np.where(mask)[0]
+            remaining = np.delete(remaining, best_local)
 
         return np.array(selected)
