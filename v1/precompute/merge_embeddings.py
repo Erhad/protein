@@ -17,8 +17,8 @@ CHUNK_DIR = "/workspace/embeddings"
 OUT_DIR   = "/workspace/data"
 
 TASKS = [
-    {"name": "gb1",  "n": 149361, "dim": 20480, "out": "gb1/embeddings_esm2_15b_4site.npz"},
-    {"name": "trpb", "n": 160000, "dim": 20480, "out": "trpb/embeddings_esm2_15b_4site.npz"},
+    {"name": "gb1",  "n": 149361},
+    {"name": "trpb", "n": 160000},
 ]
 
 for task in TASKS:
@@ -26,7 +26,12 @@ for task in TASKS:
     chunks = sorted(glob(os.path.join(CHUNK_DIR, f"{name}_chunk*.npz")))
     print(f"\n=== {name}: {len(chunks)} chunks ===")
 
-    out = np.zeros((task["n"], task["dim"]), dtype=np.float32)
+    # Auto-detect dim from first chunk
+    first = np.load(chunks[0])
+    dim = first["embeddings"].shape[1]
+    print(f"  dim={dim} (auto-detected)")
+
+    out = np.zeros((task["n"], dim), dtype=np.float32)
 
     for path in chunks:
         data = np.load(path)
@@ -34,9 +39,9 @@ for task in TASKS:
         print(f"  {os.path.basename(path)}  [{lo}:{hi}]  shape={data['embeddings'].shape}")
         out[lo:hi] = data["embeddings"]
 
-    out_path = os.path.join(OUT_DIR, task["out"])
+    out_path = os.path.join(OUT_DIR, f"{name}/embeddings_esmc600m_4site.npy")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    np.savez_compressed(out_path, embeddings=out)
-    print(f"Saved: {out_path}  ({os.path.getsize(out_path)/1e6:.0f} MB)")
+    np.save(out_path, out)
+    print(f"Saved: {out_path}  ({os.path.getsize(out_path)/1e9:.2f} GB)")
 
 print("\nAll merged. Now rsync to your Mac.")
