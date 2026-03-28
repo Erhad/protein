@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from experiments.run_single import run
 
-ALL_LANDSCAPES  = ["gfp", "gb1", "trpb", "gb1_15b"]
+ALL_LANDSCAPES  = ["gfp", "gb1", "trpb"]
 ALL_BATCH_SIZES = [1, 16, 96]
 
 

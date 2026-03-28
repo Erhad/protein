@@ -50,11 +50,6 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/trpb/embeddings_esm2_650m_4site.npz",
     },
-    "gb1_15b": {
-        "fitness_csv": "data/gb1/gb1_fitness.csv",
-        "fitness_col": "label",
-        "embeddings":  "data/gb1/embeddings_esm2_15b_4site.npy",
-    },
 }
 
 
@@ -64,8 +59,7 @@ def load_landscape(landscape: str) -> tuple:
     fitness = pd.read_csv(
         os.path.join(ROOT, cfg["fitness_csv"])
     )[cfg["fitness_col"]].values.astype(np.float32)
-    emb_path = os.path.join(ROOT, cfg["embeddings"])
-    emb = np.load(emb_path) if emb_path.endswith(".npy") else np.load(emb_path)["embeddings"]
+    emb = np.load(os.path.join(ROOT, cfg["embeddings"]))["embeddings"]
     assert len(emb) == len(fitness)
     return emb, fitness
 
