@@ -48,33 +48,44 @@ model.eval()
 print(f"Loaded in {time.time()-t0:.1f}s", flush=True)
 
 
+BATCH = 128  # sequences per GPU forward pass
+
 def embed_4site(sequences: list, sites: list, rank: int) -> np.ndarray:
-    # Detect hidden dim
+    # Detect hidden dim via single sequence
     with torch.no_grad():
         pt  = model.encode(ESMProtein(sequence=sequences[0]))
         out = model.logits(pt, LogitsConfig(return_embeddings=True))
         hidden_dim = out.embeddings.shape[-1]
 
-    print(f"  hidden_dim={hidden_dim}  4site_dim={len(sites)*hidden_dim}", flush=True)
+    print(f"  hidden_dim={hidden_dim}  4site_dim={len(sites)*hidden_dim}  batch={BATCH}", flush=True)
 
     n   = len(sequences)
     dim = len(sites) * hidden_dim
     result = np.zeros((n, dim), dtype=np.float32)
 
     t0 = time.time()
-    for i, seq in enumerate(sequences):
-        with torch.no_grad():
-            pt  = model.encode(ESMProtein(sequence=seq))
-            out = model.logits(pt, LogitsConfig(return_embeddings=True))
-            emb = out.embeddings[0].float()  # (L+2, hidden_dim)
-            site_vec = torch.cat([emb[s + 1] for s in sites])
-            result[i] = site_vec.cpu().numpy()
+    for start in range(0, n, BATCH):
+        batch_seqs = sequences[start : start + BATCH]
 
-        if i % 2000 == 0 and i > 0:
+        # Encode to token ids (CPU, fast)
+        tokens = torch.stack([
+            model.encode(ESMProtein(sequence=s)).sequence
+            for s in batch_seqs
+        ]).to(DEVICE)  # (B, L+2)
+
+        with torch.no_grad():
+            out = model.forward(sequence_tokens=tokens)
+            emb = out.embeddings.float()  # (B, L+2, hidden_dim)
+
+        for j in range(len(batch_seqs)):
+            site_vec = torch.cat([emb[j, s + 1] for s in sites])
+            result[start + j] = site_vec.cpu().numpy()
+
+        if start % 5000 == 0 and start > 0:
             elapsed = time.time() - t0
-            rate    = i / elapsed
-            eta     = (n - i) / rate / 60
-            print(f"  [rank {rank}] {i:>7,}/{n:,}  {rate:.1f} seq/s  ETA {eta:.0f}min", flush=True)
+            rate    = (start + BATCH) / elapsed
+            eta     = (n - start) / rate / 60
+            print(f"  [rank {rank}] {min(start+BATCH,n):>7,}/{n:,}  {rate:.1f} seq/s  ETA {eta:.0f}min", flush=True)
 
     return result
 
