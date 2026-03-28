@@ -50,6 +50,11 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/trpb/embeddings_esm2_650m_4site.npz",
     },
+    "gb1_15b": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_15b_4site.npy",
+    },
 }
 
 
@@ -59,7 +64,8 @@ def load_landscape(landscape: str) -> tuple:
     fitness = pd.read_csv(
         os.path.join(ROOT, cfg["fitness_csv"])
     )[cfg["fitness_col"]].values.astype(np.float32)
-    emb = np.load(os.path.join(ROOT, cfg["embeddings"]))["embeddings"]
+    emb_path = os.path.join(ROOT, cfg["embeddings"])
+    emb = np.load(emb_path) if emb_path.endswith(".npy") else np.load(emb_path)["embeddings"]
     assert len(emb) == len(fitness)
     return emb, fitness
 
@@ -86,6 +92,15 @@ def make_method(method: str, seed: int):
     elif method == "rf_ts_k20":
         from methods.rf_variants import RandomForestOptimizer
         return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=20)
+    elif method == "rf_ts_k5_eps10":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=5, epsilon=0.10)
+    elif method == "rf_ts_k5_eps20":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=5, epsilon=0.20)
+    elif method == "rf_ts_k5_eps30":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=5, epsilon=0.30)
     elif method == "boes_ei":
         from methods.boes import BOES
         return BOES(seed=seed, acquisition="ei")
@@ -163,7 +178,7 @@ def run(landscape: str, method: str, batch_size: int, seed: int) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--landscape",  required=True, choices=list(LANDSCAPE_CFG))
+    parser.add_argument("--landscape",  required=True, choices=list(LANDSCAPE_CFG.keys()))
     parser.add_argument("--method",     required=True,
                         choices=["evolvepro", "rf_greedy", "rf_ucb",
                                  "rf_ts", "rf_ts_k1", "rf_ts_k5", "rf_ts_k10", "rf_ts_k20",
