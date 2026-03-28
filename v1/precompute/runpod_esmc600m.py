@@ -67,19 +67,23 @@ def embed_4site(sequences: list, sites: list, rank: int) -> np.ndarray:
     for start in range(0, n, BATCH):
         batch_seqs = sequences[start : start + BATCH]
 
-        # Encode to token ids (CPU, fast)
-        tokens = torch.stack([
-            model.encode(ESMProtein(sequence=s)).sequence
-            for s in batch_seqs
-        ]).to(DEVICE)  # (B, L+2)
+        encoded = [model.encode(ESMProtein(sequence=s)).sequence for s in batch_seqs]
 
-        with torch.no_grad():
-            out = model.forward(sequence_tokens=tokens)
-            emb = out.embeddings.float()  # (B, L+2, hidden_dim)
-
-        for j in range(len(batch_seqs)):
-            site_vec = torch.cat([emb[j, s + 1] for s in sites])
-            result[start + j] = site_vec.cpu().numpy()
+        # Batch only if all same length, else process individually
+        lengths = [t.shape[0] for t in encoded]
+        if len(set(lengths)) == 1:
+            tokens = torch.stack(encoded).to(DEVICE)
+            with torch.no_grad():
+                out = model.forward(sequence_tokens=tokens)
+                emb = out.embeddings.float()
+            for j in range(len(batch_seqs)):
+                result[start + j] = torch.cat([emb[j, s + 1] for s in sites]).cpu().numpy()
+        else:
+            for j, (seq, tok) in enumerate(zip(batch_seqs, encoded)):
+                with torch.no_grad():
+                    out = model.forward(sequence_tokens=tok.unsqueeze(0).to(DEVICE))
+                    emb = out.embeddings[0].float()
+                result[start + j] = torch.cat([emb[s + 1] for s in sites]).cpu().numpy()
 
         if start % 5000 == 0 and start > 0:
             elapsed = time.time() - t0
