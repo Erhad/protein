@@ -22,7 +22,7 @@ fi
 
 # ── 2. Install deps ───────────────────────────────────────────────────────────
 echo "=== Installing deps ==="
-pip install transformers accelerate pandas numpy -q
+pip install transformers accelerate pandas numpy datasets -q
 
 # ── 3. Pre-download model once before workers start (avoids 4×30GB simultaneous downloads) ───
 echo "=== Pre-downloading ESM2-15B (~30GB, once) ==="

@@ -95,10 +95,11 @@ def embed_meanpool(sequences: list, rank: int) -> np.ndarray:
 
 
 import pandas as pd
+from datasets import load_dataset
 
 LANDSCAPES = [
-    {"name": "gb1",  "csv": "/workspace/protein/v1/data/gb1/gb1_fitness.csv"},
-    {"name": "trpb", "csv": "/workspace/protein/v1/data/trpb/trpb_fitness.csv"},
+    {"name": "gb1",  "csv": "/workspace/protein/v1/data/gb1/gb1_fitness.csv", "hf": None},
+    {"name": "trpb", "csv": None, "hf": "SaProtHub/Dataset-TrpB_fitness_landsacpe"},
 ]
 
 for lc in LANDSCAPES:
@@ -110,8 +111,12 @@ for lc in LANDSCAPES:
         continue
 
     print(f"\n[rank {RANK}] === {name.upper()} ===", flush=True)
-    df      = pd.read_csv(lc["csv"])
-    seqs    = df["protein"].str.strip().str.replace("*", "", regex=False).tolist()
+    if lc["csv"]:
+        df   = pd.read_csv(lc["csv"])
+        seqs = df["protein"].str.strip().str.replace("*", "", regex=False).tolist()
+    else:
+        ds   = load_dataset(lc["hf"], split="train")
+        seqs = [s.replace("*", "").strip() for s in ds["protein"]]
     n_total = len(seqs)
 
     lo      = (n_total * RANK) // WORLD
