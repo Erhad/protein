@@ -51,7 +51,8 @@ wait
 echo "=== All workers done. Merging... ==="
 python precompute/merge_esm2_15b.py
 
-echo "=== Sending to Mac (paste the code shown below) ==="
+echo "=== Sending to Mac (paste each code shown below) ==="
 runpodctl send /workspace/protein/v1/data/gb1/embeddings_esm2_15b_meanpool.npy
+runpodctl send /workspace/protein/v1/data/trpb/embeddings_esm2_15b_meanpool.npy
 
 echo "=== Done! ==="

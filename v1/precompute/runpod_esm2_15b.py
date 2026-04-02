@@ -94,22 +94,28 @@ def embed_meanpool(sequences: list, rank: int) -> np.ndarray:
     return result
 
 
-# ── GB1 ───────────────────────────────────────────────────────────────────────
 import pandas as pd
 
-CSV_PATH = "/workspace/protein/v1/data/gb1/gb1_fitness.csv"
-OUT_PATH = f"{OUT_DIR}/gb1_15b_chunk{RANK:02d}.npz"
+LANDSCAPES = [
+    {"name": "gb1",  "csv": "/workspace/protein/v1/data/gb1/gb1_fitness.csv"},
+    {"name": "trpb", "csv": "/workspace/protein/v1/data/trpb/trpb_fitness.csv"},
+]
 
-if os.path.exists(OUT_PATH):
-    print(f"\n[rank {RANK}] chunk already exists, skipping.", flush=True)
-else:
-    print(f"\n[rank {RANK}] === GB1 ===", flush=True)
-    df   = pd.read_csv(CSV_PATH)
-    seqs = df["protein"].str.strip().str.replace("*", "", regex=False).tolist()
+for lc in LANDSCAPES:
+    name     = lc["name"]
+    out_path = f"{OUT_DIR}/{name}_15b_chunk{RANK:02d}.npz"
+
+    if os.path.exists(out_path):
+        print(f"\n[rank {RANK}] {name} chunk already exists, skipping.", flush=True)
+        continue
+
+    print(f"\n[rank {RANK}] === {name.upper()} ===", flush=True)
+    df      = pd.read_csv(lc["csv"])
+    seqs    = df["protein"].str.strip().str.replace("*", "", regex=False).tolist()
     n_total = len(seqs)
 
-    lo = (n_total * RANK) // WORLD
-    hi = (n_total * (RANK + 1)) // WORLD
+    lo      = (n_total * RANK) // WORLD
+    hi      = (n_total * (RANK + 1)) // WORLD
     my_seqs = seqs[lo:hi]
     print(f"  slice [{lo}:{hi}]  ({len(my_seqs):,} sequences)", flush=True)
 
@@ -117,7 +123,7 @@ else:
     emb = embed_meanpool(my_seqs, RANK)
     print(f"  Done in {time.time()-t_start:.0f}s  shape={emb.shape}", flush=True)
 
-    np.savez(OUT_PATH, embeddings=emb, lo=lo, hi=hi)
-    print(f"  Saved: {OUT_PATH}", flush=True)
+    np.savez(out_path, embeddings=emb, lo=lo, hi=hi)
+    print(f"  Saved: {out_path}", flush=True)
 
 print(f"\n[rank {RANK}] All done!", flush=True)
