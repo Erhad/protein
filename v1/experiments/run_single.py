@@ -45,21 +45,166 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/gb1/embeddings_esm2_650m_4site.npz",
     },
+    "gb1_esm2": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_650m_4site.npz",
+    },
+    "gb1_esm2_mean": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_650m_4site_mean.npy",
+    },
+    "gb1_esmc": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esmc600m_4site.npy",
+    },
     "trpb": {
         "fitness_csv": "data/trpb/trpb_fitness.csv",
         "fitness_col": "label",
         "embeddings":  "data/trpb/embeddings_esm2_650m_4site.npz",
     },
+    "trpb_esmc": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/trpb/embeddings_esmc600m_4site.npy",
+    },
+    "gb1_onehot": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  None,   # computed on-the-fly in load_landscape
+    },
+    "trpb_onehot": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  None,   # computed on-the-fly in load_landscape
+    },
 }
 
+
+_ALL_AAS = list("ACDEFGHIKLMNPQRSTVWY")
+_GB1_SITES  = [38, 39, 40, 53]    # 0-indexed positions that vary in GB1
+_TRPB_SITES = [182, 183, 226, 227]  # 0-indexed positions that vary in TrpB4 (Li et al uses 1-indexed 183,184,227,228)
+
+# ZS predictor configs per landscape
+ZS_CFG = {
+    "gb1":          {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esm2":      {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esm2_mean": {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esmc":     {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_onehot":   {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "trpb":         {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_esmc":    {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_onehot":  {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+}
+
+ZS_PREDICTORS = ["esm_score", "esmif_score", "ev_score", "ev-esm-esmif_score", "ed_score"]
+
+WT_AAS = {
+    "gb1":          "VDGV",
+    "gb1_esm2":      "VDGV",
+    "gb1_esm2_mean": "VDGV",
+    "gb1_esmc":     "VDGV",
+    "gb1_onehot":   "VDGV",
+    "trpb":         "VFVS",
+    "trpb_esmc":    "VFVS",
+    "trpb_onehot":  "VFVS",
+}
+
+def load_double_mut_zs_init(landscape: str, n: int, seqs: list, rng: np.random.Generator) -> list:
+    """Li et al 'ds-ev + double': sample n from <=2-mutation variants, proportional to ev ZS score."""
+    import pandas as pd
+    cfg  = ZS_CFG[landscape]
+    sites = cfg["sites"]
+    wt   = WT_AAS[landscape]
+
+    # Build AA codes and compute hamming distance to WT
+    our_aas = np.array(["".join(seq[s] for s in sites) for seq in seqs])
+    dists   = np.array([sum(a != b for a, b in zip(aa, wt)) for aa in our_aas])
+    pool    = np.where(dists <= 2)[0]
+
+    # Get ev ZS scores for pool
+    zs_df   = pd.read_csv(os.path.join(ROOT, cfg["csv"]))
+    zs_map  = dict(zip(zs_df["AAs"], zs_df["ev_score"]))
+    scores  = np.array([zs_map.get(our_aas[i], -np.inf) for i in pool], dtype=np.float64)
+
+    # Softmax-proportional sampling (doubly sampled = proportional to ZS)
+    scores  = scores - scores.max()
+    weights = np.exp(scores)
+    weights /= weights.sum()
+
+    chosen = rng.choice(len(pool), size=min(n, len(pool)), replace=False, p=weights)
+    return pool[chosen].tolist()
+
+
+CLUSTER_LABEL_PATHS = {
+    "gb1":        "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esm2":   "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esmc":   "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_onehot": "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+}
+
+def load_cluster_init(landscape: str, n: int, rng: np.random.Generator) -> list:
+    """Sample n indices with equal allocation across HDBSCAN clusters."""
+    path = os.path.join(ROOT, CLUSTER_LABEL_PATHS[landscape])
+    labels = np.load(path)                         # -2=filtered, -1=noise, 0+=cluster
+    cluster_ids = sorted(set(labels[labels >= 0]))
+    n_clusters  = len(cluster_ids)
+    per_cluster = n // n_clusters
+    remainder   = n - per_cluster * n_clusters
+
+    selected = []
+    for c in cluster_ids:
+        idx = np.where(labels == c)[0]
+        k   = min(per_cluster, len(idx))
+        selected.extend(rng.choice(idx, k, replace=False).tolist())
+
+    # Fill remainder randomly from all clustered variants
+    if remainder > 0:
+        clustered = np.where(labels >= 0)[0]
+        pool = [i for i in clustered if i not in set(selected)]
+        selected.extend(rng.choice(pool, remainder, replace=False).tolist())
+
+    return selected
+
+
+def load_zs_init(landscape: str, predictor: str, seqs: list) -> np.ndarray:
+    """Returns indices of top-INITIAL_N variants sorted by ZS predictor (descending)."""
+    import pandas as pd
+    cfg = ZS_CFG[landscape]
+    zs = pd.read_csv(os.path.join(ROOT, cfg["csv"]))
+    sites = cfg["sites"]
+    # Build 4-AA code for each variant in our dataset
+    our_aas = ["".join(seq[s] for s in sites) for seq in seqs]
+    # Map ZS score by AAs code
+    zs_map = dict(zip(zs["AAs"], zs[predictor]))
+    scores = np.array([zs_map.get(aa, -np.inf) for aa in our_aas])
+    # Return top-INITIAL_N indices (highest ZS score = most promising)
+    return np.argsort(scores)[::-1][:INITIAL_N]
+
+def _seqs_to_onehot(seqs, sites=_GB1_SITES):
+    aa_idx = {aa: i for i, aa in enumerate(_ALL_AAS)}
+    out = np.zeros((len(seqs), len(sites) * len(_ALL_AAS)), dtype=np.float32)
+    for i, seq in enumerate(seqs):
+        for j, site in enumerate(sites):
+            aa = seq[site]
+            if aa in aa_idx:
+                out[i, j * len(_ALL_AAS) + aa_idx[aa]] = 1.0
+    return out
 
 def load_landscape(landscape: str) -> tuple:
     import pandas as pd
     cfg = LANDSCAPE_CFG[landscape]
-    fitness = pd.read_csv(
-        os.path.join(ROOT, cfg["fitness_csv"])
-    )[cfg["fitness_col"]].values.astype(np.float32)
-    emb = np.load(os.path.join(ROOT, cfg["embeddings"]))["embeddings"]
+    df = pd.read_csv(os.path.join(ROOT, cfg["fitness_csv"]))
+    fitness = df[cfg["fitness_col"]].values.astype(np.float32)
+    if cfg["embeddings"] is None:
+        # onehot encoding computed on-the-fly
+        sites = ZS_CFG[landscape]["sites"] if landscape in ZS_CFG else _GB1_SITES
+        emb = _seqs_to_onehot(df["protein"].values, sites=sites)
+    else:
+        emb_path = os.path.join(ROOT, cfg["embeddings"])
+        emb = np.load(emb_path) if emb_path.endswith(".npy") else np.load(emb_path)["embeddings"]
     assert len(emb) == len(fitness)
     return emb, fitness
 
@@ -86,6 +231,9 @@ def make_method(method: str, seed: int):
     elif method == "rf_ts_k20":
         from methods.rf_variants import RandomForestOptimizer
         return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=20)
+    elif method == "rf_ts_k50":
+        from methods.rf_variants import RandomForestOptimizer
+        return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=50)
     elif method == "rf_ts_k5_eps10":
         from methods.rf_variants import RandomForestOptimizer
         return RandomForestOptimizer(seed=seed, acquisition="ts", ts_k=5, epsilon=0.10)
@@ -104,45 +252,84 @@ def make_method(method: str, seed: int):
     elif method == "mutation_stats":
         from methods.mutation_stats import MutationStats
         return MutationStats(seed=seed)
+    elif method == "dnn_ts":
+        # DNN ensemble [input→500→150→50→1] + Thompson Sampling (ESMc-L config)
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="ts")
+    elif method == "dnn_ts_s":
+        # DNN ensemble [input→256→128→1] + TS, 70% bootstrap per member (ESMc-S config)
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[256, 128], acquisition="ts", bootstrap_size=0.7)
+    elif method == "dnn_greedy":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="greedy")
+    elif method == "dnn_ucb":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="ucb", beta=2.0)
+    elif method == "alde_dnn":
+        # Li 2024 DNN_ENSEMBLE: [input→30→30→1] + proper batch TS (resample per item)
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[30, 30], acquisition="ts")
+    elif method == "alde_dnn_greedy":
+        # Li 2024 DNN_ENSEMBLE with GREEDY acquisition (best for TrpB)
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[30, 30], acquisition="greedy")
     else:
         raise ValueError(f"Unknown method: {method}")
 
 
-def run(landscape: str, method: str, batch_size: int, seed: int) -> dict:
+def run(landscape: str, method: str, batch_size: int, seed: int,
+        zs_predictor: str = None, cluster_init: bool = False,
+        double_mut_init: bool = False) -> dict:
     # Check before doing any computation
+    zs_tag = f"_zs{zs_predictor}" if zs_predictor else (
+             "_clinit" if cluster_init else (
+             "_dmzs"   if double_mut_init else ""))
     out_path = os.path.join(
         ROOT, "results", "raw",
-        f"{landscape}_{method}_{batch_size}.jsonl"
+        f"{landscape}_{method}{zs_tag}_{batch_size}.jsonl"
     )
     if os.path.exists(out_path):
         with open(out_path) as f:
             existing_seeds = {json.loads(line)["seed"] for line in f}
         if seed in existing_seeds:
-            print(f"  [{landscape}|{method}|bs={batch_size}|seed={seed}] already done, skipping.")
+            print(f"  [{landscape}|{method}{zs_tag}|bs={batch_size}|seed={seed}] already done, skipping.")
             return None
 
-    print(f"[{landscape}|{method}|bs={batch_size}|seed={seed}]", flush=True)
+    print(f"[{landscape}|{method}{zs_tag}|bs={batch_size}|seed={seed}]", flush=True)
 
     np.random.seed(seed)
+    import pandas as pd
+    df = pd.read_csv(os.path.join(ROOT, LANDSCAPE_CFG[landscape]["fitness_csv"]))
     emb, fitness = load_landscape(landscape)
     n_total = len(fitness)
     opt = make_method(method, seed)
     rng = np.random.default_rng(seed)
 
-    # Initial random sample
-    labeled_idx   = list(rng.choice(n_total, size=INITIAL_N, replace=False).tolist())
+    # Initial sample: cluster-stratified, double-mut ZS, ZS-guided, or random
+    if cluster_init:
+        labeled_idx = load_cluster_init(landscape, INITIAL_N, rng)
+    elif double_mut_init:
+        labeled_idx = load_double_mut_zs_init(landscape, INITIAL_N, df["protein"].values, rng)
+    elif zs_predictor:
+        labeled_idx = list(load_zs_init(landscape, zs_predictor, df["protein"].values).tolist())
+    else:
+        labeled_idx = list(rng.choice(n_total, size=INITIAL_N, replace=False).tolist())
     remaining_idx = list(set(range(n_total)) - set(labeled_idx))
 
+    global_max = fitness.max()
     t_total = 0.0
     while len(labeled_idx) < TOTAL_BUDGET:
         actual_batch = min(batch_size, TOTAL_BUDGET - len(labeled_idx))
 
         X_train = emb[labeled_idx]
         y_train = fitness[labeled_idx]
+        y_max   = y_train.max()
+        y_train_norm = y_train / y_max if y_max > 0 else y_train
         X_pool  = emb[remaining_idx]
 
         t0 = time.time()
-        opt.train(X_train, y_train)
+        opt.train(X_train, y_train_norm)
         pool_sel = opt.select(X_pool, batch_size=actual_batch)
         t_total += time.time() - t0
 
@@ -151,9 +338,12 @@ def run(landscape: str, method: str, batch_size: int, seed: int) -> dict:
         remaining_set   = set(selected_global)
         remaining_idx   = [i for i in remaining_idx if i not in remaining_set]
 
+        current_max = fitness[labeled_idx].max()
         print(f"  n={len(labeled_idx):4d}  "
-              f"max={fitness[labeled_idx].max():.4f}  "
+              f"max={current_max:.4f}  "
               f"t={t_total:.1f}s", flush=True)
+        if current_max >= global_max:
+            break
 
     record = {
         "landscape":       landscape,
@@ -176,8 +366,16 @@ if __name__ == "__main__":
     parser.add_argument("--method",     required=True,
                         choices=["evolvepro", "rf_greedy", "rf_ucb",
                                  "rf_ts", "rf_ts_k1", "rf_ts_k5", "rf_ts_k10", "rf_ts_k20",
-                                 "boes_ei", "boes_ts", "mutation_stats"])
-    parser.add_argument("--batch_size", required=True, type=int)
-    parser.add_argument("--seed",       required=True, type=int)
+                                 "boes_ei", "boes_ts", "mutation_stats",
+                                 "dnn_ts", "dnn_ts_s", "dnn_greedy", "dnn_ucb", "alde_dnn"])
+    parser.add_argument("--batch_size",    required=True, type=int)
+    parser.add_argument("--seed",          required=True, type=int)
+    parser.add_argument("--zs_predictor",  default=None, choices=ZS_PREDICTORS,
+                        help="Zero-shot predictor for guided initialization (default: random)")
+    parser.add_argument("--cluster_init",   action="store_true",
+                        help="Use cluster-stratified initialization (requires precomputed labels)")
+    parser.add_argument("--double_mut_init", action="store_true",
+                        help="Li et al ds-ev: sample from <=2-mut variants proportional to ev ZS score")
     args = parser.parse_args()
-    run(args.landscape, args.method, args.batch_size, args.seed)
+    run(args.landscape, args.method, args.batch_size, args.seed,
+        args.zs_predictor, args.cluster_init, args.double_mut_init)
