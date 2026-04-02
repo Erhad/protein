@@ -21,8 +21,8 @@ fi
 echo "=== Installing deps ==="
 pip install transformers accelerate pandas numpy -q
 
-# ── 3. Pre-download model on rank-0 (avoids 4 simultaneous 30GB downloads) ───
-echo "=== Pre-downloading ESM2-15B (rank-0 only, ~30GB) ==="
+# ── 3. Pre-download model once before workers start (avoids 4×30GB simultaneous downloads) ───
+echo "=== Pre-downloading ESM2-15B (~30GB, once) ==="
 python - <<'EOF'
 from transformers import AutoTokenizer, EsmModel
 import torch
