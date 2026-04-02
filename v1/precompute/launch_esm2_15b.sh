@@ -8,6 +8,9 @@
 set -e
 cd /workspace
 
+# Store HF model cache on /workspace (large network volume) not container disk
+export HF_HOME=/workspace/hf_cache
+
 # ── 1. Clone / update repo ────────────────────────────────────────────────────
 if [ -d /workspace/protein ]; then
     echo "=== Pulling latest repo ==="
