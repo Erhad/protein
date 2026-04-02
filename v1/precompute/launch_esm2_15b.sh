@@ -32,7 +32,7 @@ import torch
 print("Downloading tokenizer...")
 AutoTokenizer.from_pretrained("facebook/esm2_t48_15B_UR50D")
 print("Downloading model weights (this takes a while)...")
-EsmModel.from_pretrained("facebook/esm2_t48_15B_UR50D", torch_dtype=torch.float16)
+EsmModel.from_pretrained("facebook/esm2_t48_15B_UR50D", torch_dtype=torch.float16, use_safetensors=True)
 print("Download complete.")
 EOF
 
