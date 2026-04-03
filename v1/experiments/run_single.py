@@ -60,6 +60,11 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/gb1/embeddings_esm2_15b_meanpool.npy",
     },
+    "gb1_esm2_15b_c15b": {   # same embeddings, uses 15B-derived clusters for clinit
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_15b_meanpool.npy",
+    },
     "gb1_esmc": {
         "fitness_csv": "data/gb1/gb1_fitness.csv",
         "fitness_col": "label",
@@ -93,6 +98,63 @@ LANDSCAPE_CFG = {
 }
 
 
+# ── Filename metadata lookup tables ────────────────────────────────────────────
+# Maps landscape → embedding tag used in output filenames
+LANDSCAPE_EMB = {
+    "gb1":               "esm650m_4site",
+    "gb1_esm2":          "esm650m_4site",
+    "gb1_esm2_mean":     "esm650m_4site_mean",
+    "gb1_esm2_15b":      "esm15b_mean",
+    "gb1_esm2_15b_c15b": "esm15b_mean",
+    "gb1_esmc":          "esmc600m_4site",
+    "gb1_onehot":        "onehot",
+    "trpb":              "esm650m_4site",
+    "trpb_esmc":         "esmc600m_4site",
+    "trpb_esm2_15b":     "esm15b_mean",
+    "trpb_onehot":       "onehot",
+}
+
+# Maps method → (model_tag, acquisition_tag) used in output filenames
+METHOD_MODEL_ACQ = {
+    "random":          ("random",  "random"),
+    "evolvepro":       ("rfk100",  "greedy"),
+    "rf_ts":           ("rfk1",    "ts"),
+    "rf_ts_k1":        ("rfk1",    "ts"),
+    "rf_ts_k5":        ("rfk5",    "ts"),
+    "rf_ts_k10":       ("rfk10",   "ts"),
+    "rf_ts_k20":       ("rfk20",   "ts"),
+    "rf_ts_k50":       ("rfk50",   "ts"),
+    "dnn_ts":          ("dnn500",  "ts"),
+    "dnn_ts_s":        ("dnn256",  "ts"),
+    "dnn_greedy":      ("dnn500",  "greedy"),
+    "dnn_ei":          ("dnn500",  "ei"),
+    "dnn_pi":          ("dnn500",  "pi"),
+    "dnn_ucb":         ("dnn500",  "ucb"),
+    "alde_dnn":        ("dnn30",   "ts"),
+    "alde_dnn_greedy": ("dnn30",   "greedy"),
+    "boes_ts":         ("boes",    "ts"),
+    "boes_ei":         ("boes",    "ei"),
+}
+
+def _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, double_mut_init):
+    """Return canonical filename stem: {dataset}_{emb}_{model}_{acq}_{init}_{bs}"""
+    dataset = landscape.split("_")[0]   # gb1 or trpb
+    emb     = LANDSCAPE_EMB.get(landscape, landscape)
+    model, acq = METHOD_MODEL_ACQ.get(method, (method, "unknown"))
+
+    if zs_predictor:
+        init = f"zs_{zs_predictor}"
+    elif cluster_init:
+        init = "clinit_15b" if landscape.endswith("_c15b") else "clinit_esmc"
+    elif double_mut_init:
+        init = "dmzs"
+    else:
+        init = "random"
+
+    if model == "random":
+        return f"{dataset}_random_{batch_size}"
+    return f"{dataset}_{emb}_{model}_{acq}_{init}_{batch_size}"
+
 _ALL_AAS = list("ACDEFGHIKLMNPQRSTVWY")
 _GB1_SITES  = [38, 39, 40, 53]    # 0-indexed positions that vary in GB1
 _TRPB_SITES = [182, 183, 226, 227]  # 0-indexed positions that vary in TrpB4 (Li et al uses 1-indexed 183,184,227,228)
@@ -102,7 +164,8 @@ ZS_CFG = {
     "gb1":          {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_esm2":      {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_esm2_mean": {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
-    "gb1_esm2_15b":  {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esm2_15b":      {"csv": "data/li2024/results/zs_comb/all/GB1.csv", "sites": _GB1_SITES},
+    "gb1_esm2_15b_c15b": {"csv": "data/li2024/results/zs_comb/all/GB1.csv", "sites": _GB1_SITES},
     "gb1_esmc":     {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_onehot":   {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "trpb":         {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
@@ -117,7 +180,8 @@ WT_AAS = {
     "gb1":          "VDGV",
     "gb1_esm2":      "VDGV",
     "gb1_esm2_mean": "VDGV",
-    "gb1_esm2_15b":  "VDGV",
+    "gb1_esm2_15b":      "VDGV",
+    "gb1_esm2_15b_c15b": "VDGV",
     "gb1_esmc":     "VDGV",
     "gb1_onehot":   "VDGV",
     "trpb":         "VFVS",
@@ -156,7 +220,8 @@ CLUSTER_LABEL_PATHS = {
     "gb1":           "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "gb1_esm2":      "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "gb1_esm2_mean": "data/gb1/cluster_labels_hdbscan_mcs500.npy",
-    "gb1_esm2_15b":  "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esm2_15b":      "data/gb1/cluster_labels_hdbscan_mcs500.npy",         # ESMc clusters (better)
+    "gb1_esm2_15b_c15b": "data/gb1/cluster_labels_esm2_15b_hdbscan_mcs500.npy", # 15B clusters
     "gb1_esmc":      "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "gb1_onehot":    "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "trpb":          "data/trpb/cluster_labels_hdbscan_mcs500.npy",
@@ -308,21 +373,16 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
         zs_predictor: str = None, cluster_init: bool = False,
         double_mut_init: bool = False) -> dict:
     # Check before doing any computation
-    zs_tag = f"_zs{zs_predictor}" if zs_predictor else (
-             "_clinit" if cluster_init else (
-             "_dmzs"   if double_mut_init else ""))
-    out_path = os.path.join(
-        ROOT, "results", "raw",
-        f"{landscape}_{method}{zs_tag}_{batch_size}.jsonl"
-    )
+    run_name = _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, double_mut_init)
+    out_path = os.path.join(ROOT, "results", "raw", f"{run_name}.jsonl")
     if os.path.exists(out_path):
         with open(out_path) as f:
             existing_seeds = {json.loads(line)["seed"] for line in f}
         if seed in existing_seeds:
-            print(f"  [{landscape}|{method}{zs_tag}|bs={batch_size}|seed={seed}] already done, skipping.")
+            print(f"  [{run_name}|seed={seed}] already done, skipping.")
             return None
 
-    print(f"[{landscape}|{method}{zs_tag}|bs={batch_size}|seed={seed}]", flush=True)
+    print(f"[{run_name}|seed={seed}]", flush=True)
 
     np.random.seed(seed)
     import pandas as pd
