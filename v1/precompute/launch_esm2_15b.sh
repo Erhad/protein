@@ -39,12 +39,15 @@ EOF
 # ── 4. Launch 4 workers ───────────────────────────────────────────────────────
 cd /workspace/protein/v1
 echo "=== Launching 4 workers ==="
-python precompute/runpod_esm2_15b.py --rank 0 --world 4 --only trpb > /tmp/esm2_15b_rank0.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 1 --world 4 --only trpb > /tmp/esm2_15b_rank1.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 2 --world 4 --only trpb > /tmp/esm2_15b_rank2.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 3 --world 4 --only trpb > /tmp/esm2_15b_rank3.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 0 --world 7 --only trpb > /tmp/esm2_15b_rank0.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 1 --world 7 --only trpb > /tmp/esm2_15b_rank1.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 2 --world 7 --only trpb > /tmp/esm2_15b_rank2.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 3 --world 7 --only trpb > /tmp/esm2_15b_rank3.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 4 --world 7 --only trpb > /tmp/esm2_15b_rank4.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 5 --world 7 --only trpb > /tmp/esm2_15b_rank5.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 6 --world 7 --only trpb > /tmp/esm2_15b_rank6.log 2>&1 &
 
-echo "Workers running. Logs: /tmp/esm2_15b_rank{0..3}.log"
+echo "Workers running. Logs: /tmp/esm2_15b_rank{0..6}.log"
 echo "Monitor with: tail -f /tmp/esm2_15b_rank0.log"
 wait
 
