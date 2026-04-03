@@ -75,6 +75,11 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/trpb/embeddings_esmc600m_4site.npy",
     },
+    "trpb_esm2_15b": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/trpb/embeddings_esm2_15b_meanpool.npy",
+    },
     "gb1_onehot": {
         "fitness_csv": "data/gb1/gb1_fitness.csv",
         "fitness_col": "label",
@@ -101,8 +106,9 @@ ZS_CFG = {
     "gb1_esmc":     {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_onehot":   {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "trpb":         {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
-    "trpb_esmc":    {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
-    "trpb_onehot":  {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_esmc":     {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_esm2_15b": {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_onehot":   {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
 }
 
 ZS_PREDICTORS = ["esm_score", "esmif_score", "ev_score", "ev-esm-esmif_score", "ed_score"]
@@ -115,8 +121,9 @@ WT_AAS = {
     "gb1_esmc":     "VDGV",
     "gb1_onehot":   "VDGV",
     "trpb":         "VFVS",
-    "trpb_esmc":    "VFVS",
-    "trpb_onehot":  "VFVS",
+    "trpb_esmc":     "VFVS",
+    "trpb_esm2_15b": "VFVS",
+    "trpb_onehot":   "VFVS",
 }
 
 def load_double_mut_zs_init(landscape: str, n: int, seqs: list, rng: np.random.Generator) -> list:
@@ -152,6 +159,10 @@ CLUSTER_LABEL_PATHS = {
     "gb1_esm2_15b":  "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "gb1_esmc":      "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "gb1_onehot":    "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "trpb":          "data/trpb/cluster_labels_hdbscan_mcs500.npy",
+    "trpb_esmc":     "data/trpb/cluster_labels_hdbscan_mcs500.npy",
+    "trpb_esm2_15b": "data/trpb/cluster_labels_hdbscan_mcs500.npy",
+    "trpb_onehot":   "data/trpb/cluster_labels_hdbscan_mcs500.npy",
 }
 
 def load_cluster_init(landscape: str, n: int, rng: np.random.Generator) -> list:
