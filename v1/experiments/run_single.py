@@ -55,6 +55,11 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/gb1/embeddings_esm2_650m_4site_mean.npy",
     },
+    "gb1_esm2_15b": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_15b_meanpool.npy",
+    },
     "gb1_esmc": {
         "fitness_csv": "data/gb1/gb1_fitness.csv",
         "fitness_col": "label",
@@ -92,6 +97,7 @@ ZS_CFG = {
     "gb1":          {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_esm2":      {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_esm2_mean": {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esm2_15b":  {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_esmc":     {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "gb1_onehot":   {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
     "trpb":         {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
@@ -105,6 +111,7 @@ WT_AAS = {
     "gb1":          "VDGV",
     "gb1_esm2":      "VDGV",
     "gb1_esm2_mean": "VDGV",
+    "gb1_esm2_15b":  "VDGV",
     "gb1_esmc":     "VDGV",
     "gb1_onehot":   "VDGV",
     "trpb":         "VFVS",
@@ -139,10 +146,12 @@ def load_double_mut_zs_init(landscape: str, n: int, seqs: list, rng: np.random.G
 
 
 CLUSTER_LABEL_PATHS = {
-    "gb1":        "data/gb1/cluster_labels_hdbscan_mcs500.npy",
-    "gb1_esm2":   "data/gb1/cluster_labels_hdbscan_mcs500.npy",
-    "gb1_esmc":   "data/gb1/cluster_labels_hdbscan_mcs500.npy",
-    "gb1_onehot": "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1":           "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esm2":      "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esm2_mean": "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esm2_15b":  "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_esmc":      "data/gb1/cluster_labels_hdbscan_mcs500.npy",
+    "gb1_onehot":    "data/gb1/cluster_labels_hdbscan_mcs500.npy",
 }
 
 def load_cluster_init(landscape: str, n: int, rng: np.random.Generator) -> list:
@@ -263,6 +272,12 @@ def make_method(method: str, seed: int):
     elif method == "dnn_greedy":
         from methods.dnn_ensemble import DNNEnsembleOptimizer
         return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="greedy")
+    elif method == "dnn_ei":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="ei")
+    elif method == "dnn_pi":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="pi")
     elif method == "dnn_ucb":
         from methods.dnn_ensemble import DNNEnsembleOptimizer
         return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="ucb", beta=2.0)

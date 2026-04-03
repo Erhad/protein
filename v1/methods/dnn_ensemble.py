@@ -147,6 +147,13 @@ class DNNEnsembleOptimizer:
             mu = preds.mean(axis=1)
             sigma = preds.std(axis=1)
             scores = mu + np.sqrt(self.beta) * sigma
+        elif self.acquisition == "ei":
+            # Pseudo-EI: average improvement over current best across ensemble members.
+            # Targets are normalized so best-in-training = 1.0.
+            scores = np.maximum(preds - 1.0, 0).mean(axis=1)
+        elif self.acquisition == "pi":
+            # Probability of Improvement: fraction of ensemble members predicting above best.
+            scores = (preds > 1.0).mean(axis=1)
         else:
             raise ValueError(f"Unknown acquisition: {self.acquisition}")
 
