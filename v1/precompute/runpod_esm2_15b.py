@@ -32,6 +32,8 @@ BATCH      = 16   # sequences per forward pass — 15B is ~30GB fp16, 16 seqs of
 parser = argparse.ArgumentParser()
 parser.add_argument("--rank",  type=int, default=0)
 parser.add_argument("--world", type=int, default=4)
+parser.add_argument("--only",  nargs="+", default=None,
+                    help="Only run these landscapes, e.g. --only trpb")
 args = parser.parse_args()
 
 RANK  = args.rank
@@ -103,6 +105,8 @@ LANDSCAPES = [
 ]
 
 for lc in LANDSCAPES:
+    if args.only and lc["name"] not in args.only:
+        continue
     name     = lc["name"]
     out_path = f"{OUT_DIR}/{name}_15b_chunk{RANK:02d}.npz"
 

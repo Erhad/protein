@@ -39,10 +39,10 @@ EOF
 # ── 4. Launch 4 workers ───────────────────────────────────────────────────────
 cd /workspace/protein/v1
 echo "=== Launching 4 workers ==="
-python precompute/runpod_esm2_15b.py --rank 0 --world 4 > /tmp/esm2_15b_rank0.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 1 --world 4 > /tmp/esm2_15b_rank1.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 2 --world 4 > /tmp/esm2_15b_rank2.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 3 --world 4 > /tmp/esm2_15b_rank3.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 0 --world 4 --only trpb > /tmp/esm2_15b_rank0.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 1 --world 4 --only trpb > /tmp/esm2_15b_rank1.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 2 --world 4 --only trpb > /tmp/esm2_15b_rank2.log 2>&1 &
+python precompute/runpod_esm2_15b.py --rank 3 --world 4 --only trpb > /tmp/esm2_15b_rank3.log 2>&1 &
 
 echo "Workers running. Logs: /tmp/esm2_15b_rank{0..3}.log"
 echo "Monitor with: tail -f /tmp/esm2_15b_rank0.log"
@@ -52,7 +52,6 @@ echo "=== All workers done. Merging... ==="
 python precompute/merge_esm2_15b.py
 
 echo "=== Sending to Mac (paste each code shown below) ==="
-runpodctl send /workspace/protein/v1/data/gb1/embeddings_esm2_15b_meanpool.npy
 runpodctl send /workspace/protein/v1/data/trpb/embeddings_esm2_15b_meanpool.npy
 
 echo "=== Done! ==="
