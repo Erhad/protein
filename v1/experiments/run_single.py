@@ -95,6 +95,26 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  None,   # computed on-the-fly in load_landscape
     },
+    "t7_onehot": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  None,
+    },
+    "t7_esm2_15b": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/t7/embeddings_esm2_15b_meanpool.npy",
+    },
+    "tev_onehot": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  None,
+    },
+    "tev_esm2_15b": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/tev/embeddings_esm2_15b_meanpool.npy",
+    },
 }
 
 
@@ -112,6 +132,10 @@ LANDSCAPE_EMB = {
     "trpb_esmc":         "esmc600m_4site",
     "trpb_esm2_15b":     "esm15b_mean",
     "trpb_onehot":       "onehot",
+    "t7_onehot":         "onehot",
+    "t7_esm2_15b":       "esm15b_mean",
+    "tev_onehot":        "onehot",
+    "tev_esm2_15b":      "esm15b_mean",
 }
 
 # Maps method → (model_tag, acquisition_tag) used in output filenames
@@ -145,7 +169,8 @@ def _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, do
     if zs_predictor:
         init = f"zs_{zs_predictor}"
     elif cluster_init:
-        init = "clinit_15b" if landscape.endswith("_c15b") else "clinit_esmc"
+        _15b_landscapes = {"gb1_esm2_15b_c15b", "trpb_esm2_15b"}
+        init = "clinit_15b" if landscape in _15b_landscapes else "clinit_esmc"
     elif double_mut_init:
         init = "dmzs"
     else:
@@ -156,8 +181,10 @@ def _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, do
     return f"{dataset}_{emb}_{model}_{acq}_{init}_{batch_size}"
 
 _ALL_AAS = list("ACDEFGHIKLMNPQRSTVWY")
-_GB1_SITES  = [38, 39, 40, 53]    # 0-indexed positions that vary in GB1
-_TRPB_SITES = [182, 183, 226, 227]  # 0-indexed positions that vary in TrpB4 (Li et al uses 1-indexed 183,184,227,228)
+_GB1_SITES  = [38, 39, 40, 53]      # 0-indexed
+_TRPB_SITES = [182, 183, 226, 227]  # 0-indexed (1-indexed: 183,184,227,228)
+_T7_SITES   = [747, 755, 757]       # 0-indexed (1-indexed: 748,756,758)
+_TEV_SITES  = [145, 147, 166, 169]  # 0-indexed (1-indexed: 146,148,167,170)
 
 # ZS predictor configs per landscape
 ZS_CFG = {
@@ -172,6 +199,10 @@ ZS_CFG = {
     "trpb_esmc":     {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
     "trpb_esm2_15b": {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
     "trpb_onehot":   {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "t7_onehot":     {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
+    "t7_esm2_15b":   {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
+    "tev_onehot":    {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_esm2_15b":  {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
 }
 
 ZS_PREDICTORS = ["esm_score", "esmif_score", "ev_score", "ev-esm-esmif_score", "ed_score"]
@@ -188,6 +219,10 @@ WT_AAS = {
     "trpb_esmc":     "VFVS",
     "trpb_esm2_15b": "VFVS",
     "trpb_onehot":   "VFVS",
+    "t7_onehot":     "NRQ",
+    "t7_esm2_15b":   "NRQ",
+    "tev_onehot":    "TDHS",
+    "tev_esm2_15b":  "TDHS",
 }
 
 def load_double_mut_zs_init(landscape: str, n: int, seqs: list, rng: np.random.Generator) -> list:
@@ -226,8 +261,12 @@ CLUSTER_LABEL_PATHS = {
     "gb1_onehot":    "data/gb1/cluster_labels_hdbscan_mcs500.npy",
     "trpb":          "data/trpb/cluster_labels_hdbscan_mcs500.npy",
     "trpb_esmc":     "data/trpb/cluster_labels_hdbscan_mcs500.npy",
-    "trpb_esm2_15b": "data/trpb/cluster_labels_hdbscan_mcs500.npy",
+    "trpb_esm2_15b": "data/trpb/cluster_labels_esm2_15b_hdbscan_mcs500.npy",  # 15B clusters
     "trpb_onehot":   "data/trpb/cluster_labels_hdbscan_mcs500.npy",
+    "t7_onehot":     "data/t7/cluster_labels_hdbscan_mcs50.npy",
+    "t7_esm2_15b":   "data/t7/cluster_labels_esm2_15b_hdbscan_mcs50.npy",
+    "tev_onehot":    "data/tev/cluster_labels_hdbscan_mcs500.npy",
+    "tev_esm2_15b":  "data/tev/cluster_labels_esm2_15b_hdbscan_mcs500.npy",
 }
 
 def load_cluster_init(landscape: str, n: int, rng: np.random.Generator) -> list:

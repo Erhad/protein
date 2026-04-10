@@ -49,6 +49,13 @@ LANDSCAPE_CFG = {
         "sites":       [182, 183, 226, 227],
         "out":         "data/trpb/cluster_labels_hdbscan_mcs{mcs}.npy",
     },
+    "trpb_esm2_15b": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "emb_mean":    "data/trpb/embeddings_esm2_15b_meanpool.npy",
+        "zs_csv":      "data/li2024/results/zs_comb/all/TrpB4.csv",
+        "sites":       [182, 183, 226, 227],
+        "out":         "data/trpb/cluster_labels_esm2_15b_hdbscan_mcs{mcs}.npy",
+    },
 }
 
 ZS_COL       = "ev-esm-esmif_score"
