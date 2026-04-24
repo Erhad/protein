@@ -1,10 +1,4 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Aalto University MSc Thesis — HUMAN-EDITED VERSION
-%% Author: Aleksander Heino
-%% Topic: Encoding-Surrogate Pairing Effects in ML-Guided Protein Optimisation
-%% Build: latexmk -pdf thesis_human_edited
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% #region Random fluff in eginning
 \documentclass[english, 12pt, a4paper, elec, utf8, a-2b, online]{aaltothesis}
 %\documentclass[english, 12pt, a4paper, elec, utf8, a-2b, print]{aaltothesis}
 
@@ -13,6 +7,8 @@
 \usepackage{longtable}
 \usepackage{booktabs}
 \usepackage{amsmath}
+\let\Bbbk\relax
+\usepackage{amssymb}
 \usepackage[type={CC}, modifier={by-nc-sa}, version={4.0}]{doclicense}
 
 \usepackage[
@@ -46,7 +42,6 @@
 
 \thesisabstract{%
 AIAI
-
 }
 
 \begin{document}
@@ -56,6 +51,7 @@ AIAI
 
 \begin{abstractpage}[english]
   AIAI
+\end{abstractpage}
 
 \newpage
 %% Finnish abstract
@@ -86,50 +82,50 @@ Otaniemi, \today\\
 \mysection{Symbols and abbreviations}
 \subsection*{Abbreviations}
 \begin{tabular}{ll}
-  FULLAI & A \\
-  AAIndex & amino acid index physicochemical parameter database \\
   BO      & Bayesian optimisation \\
   DKL     & deep kernel learning \\
 \end{tabular}
 
 \cleardoublepage
-
-%% ---------------------------------------------------------------
+% #endregion
 \section{Introduction}
-\label{sec:intro}
 \thispagestyle{empty}
+The core question of this thesis: given a goal to optimize some protein, what kind of methods should we utilize to get the best one
 
+% #region [DRAFT] AI-generated intro snippet
 AI GEN INTRO
 An important problem across many domains in biology is the challenge of finding DNA, RNA, or
 protein sequences which perform a function of interest at a desired level. This task is challenging
-for two reasons: (i) the map φbetween sequences X= {x1,···
+for two reasons: (i) the map $\varphi$between sequences X= {x1,$\cdot$$\cdot$$\cdot$
 ,xn}and their biological function
-y= {y1,···,yn}is non-convex and (ii) has sparse support in the space of possible sequences
-AL, which also grows exponentially in the length of the sequence Lfor alphabet A. This map φis
+y= {y1,$\cdot$$\cdot$$\cdot$,yn}is non-convex and (ii) has sparse support in the space of possible sequences
+AL, which also grows exponentially in the length of the sequence Lfor alphabet A. This map $\varphi$is
 otherwise known as a “fitness landscape” (de Visser et al., 2018). Currently, the most widely used
 practical approach in sequence design is “directed evolution" (Arnold, 1998), where populations of
 biological entities are selected through an assay according to their function y, with each iteration
 becoming more stringent in the selection criteria. However, this model-free approach relies on
 evolutionary random walks through the sequence space, and most attempted optimization steps
 (mutations) are discarded due to their negative impact on y.
-∗equal contribution, †correspondence: sam.sinai@dynotx.com, eric.kelsic@dynotx.com
+$*$equal contribution, †correspondence: sam.sinai@dynotx.com, eric.kelsic@dynotx.com
 Preprint. Work in progress.
 Recent advances in DNA sequencing and synthesis technologies allow large assays which query
 yfor specific sequences x with up to 105 physical samples per batch (Barrera et al., 2016). This
 development presents an opening for machine learning to contribute in building better surrogate
-models φ′: X →y which approximate the oracle φthat maps each sequence to its true function. We
-may use these models φ′as proxies of φ, in order to generate and screen sequences in silico before
+models $\varphi$$'$: X $\to$y which approximate the oracle $\varphi$that maps each sequence to its true function. We
+may use these models $\varphi$$'$as proxies of $\varphi$, in order to generate and screen sequences in silico before
 they are sent to synthesis (Yang et al., 2019; Fox et al., 2007). While a large body of work has focused
-on building better local approximate models φ′on already published data (Otwinowski et al., 2018;
+on building better local approximate models $\varphi$$'$on already published data (Otwinowski et al., 2018;
 Alipanahi et al., 2015; Riesselman et al., 2017; Sinai et al., 2017), the more recent work is being done
-on optimization in this setting (Biswas et al., 2018; Angermueller et al., 2020; Brookes & Listgarten,
+on optimization in this setting (Biswas et al., 2018; Angermueller et al., 2020; Brookes \& Listgarten,
 2018; Brookes et al., 2019). Although synthesizing many sequences within a batch is now possible,
 because of the labor-intensive nature of the process, only a handful of iterations of learning can be
-performed. Hence data is often collected in serial batches bi, comprising data Dt = {b0,···,bt}and
+performed. Hence data is often collected in serial batches bi, comprising data Dt = {b0,$\cdot$$\cdot$$\cdot$,bt}and
 the problem of sequence design is generally cast as that of proposing batches so that we may find the
-optimal sequence x∗
-t = argmaxx∈Dt φ(x) over the course of these experiments
+optimal sequence x$*$
+t = argmaxx$\in$Dt $\varphi$(x) over the course of these experiments
+% #endregion
 ----------------------------------
+% #region [DRAFT] Planning notes and literature snippets
 PLAN and thinking
 
 ----
@@ -146,36 +142,36 @@ Concurrently, Emami et al. (2023) used GWG for protein optimization with a prod
 
 ----
 MLDE 
-Act 1: The Problem is Established (1994–2016)
-The story starts in the wet lab. Frances Arnold and others figure out that you don't need to understand how a protein works to improve it — you just need a way to screen many variants and select the best ones. That's directed evolution, and it works. But it's slow, it gets stuck at local optima, and it burns through lab budget one variant at a time.
-The field then asks: what does the fitness landscape actually look like? Two papers answer this by measuring it exhaustively. Wu et al. (2016) builds the GB1 landscape — all 160,000 combinations of 4 positions — and finds it deeply rugged: 92 prcetn of variants are near-zero fitness, there are 30 local peaks, and you can't get to the global optimum by greedy hill climbing. Sarkisyan et al. (2016) does the same for GFP, but across the full protein — 52,000 variants spread across 239 residues rather than concentrated at 4 sites. Sparse, moderate epistasis, a fitness threshold where things either glow or don't. These two papers are the datasets everyone trains and tests on for the next decade.
+Act 1: The Problem is Established (1994--2016)
+The story starts in the wet lab. Frances Arnold and others figure out that you don't need to understand how a protein works to improve it --- you just need a way to screen many variants and select the best ones. That's directed evolution, and it works. But it's slow, it gets stuck at local optima, and it burns through lab budget one variant at a time.
+The field then asks: what does the fitness landscape actually look like? Two papers answer this by measuring it exhaustively. Wu et al. (2016) builds the GB1 landscape --- all 160,000 combinations of 4 positions --- and finds it deeply rugged: 92 prcetn of variants are near-zero fitness, there are 30 local peaks, and you can't get to the global optimum by greedy hill climbing. Sarkisyan et al. (2016) does the same for GFP, but across the full protein --- 52,000 variants spread across 239 residues rather than concentrated at 4 sites. Sparse, moderate epistasis, a fitness threshold where things either glow or don't. These two papers are the datasets everyone trains and tests on for the next decade.
 
-Act 2: ML Enters the Lab (2019–2021)
+Act 2: ML Enters the Lab (2019--2021)
 With maps of the landscape in hand, the question becomes: can machine learning navigate it better than random walk? Wu et al. (2019) says yes, and names the approach MLDE. The workflow is simple: label ~100 variants, train a model, predict all 160k GB1 variants, test the top ones, repeat. One-hot encoding plus an ensemble beats greedy directed evolution.
-Wittmann et al. (2021) immediately asks: what are the levers? They run a rigorous ablation on GB1 and find the biggest lever isn't the model or the encoding — it's the training set. If your training data is 92percent holes (near-zero fitness), the model learns to predict near-zero fitness everywhere. Their fix, ftMLDE, uses zero-shot predictors (EVmutation, MSA Transformer) to enrich the training set with functional variants before fitting any surrogate. 81× improvement over single-step greedy. The encoding comparison is also here: ESM-1b helps but not dramatically; one-hot is competitive throughout.
-In parallel, Biswas et al. (2021) makes the case that PLM embeddings shine specifically when you have very few labels — 24 variants, not 96. The language model's evolutionary prior substitutes for experimental data you don't have.
+Wittmann et al. (2021) immediately asks: what are the levers? They run a rigorous ablation on GB1 and find the biggest lever isn't the model or the encoding --- it's the training set. If your training data is 92percent holes (near-zero fitness), the model learns to predict near-zero fitness everywhere. Their fix, ftMLDE, uses zero-shot predictors (EVmutation, MSA Transformer) to enrich the training set with functional variants before fitting any surrogate. 81$\times$ improvement over single-step greedy. The encoding comparison is also here: ESM-1b helps but not dramatically; one-hot is competitive throughout.
+In parallel, Biswas et al. (2021) makes the case that PLM embeddings shine specifically when you have very few labels --- 24 variants, not 96. The language model's evolutionary prior substitutes for experimental data you don't have.
 
 
-  Act 3: The Greedy Baseline Wins (2020–2022)
+  Act 3: The Greedy Baseline Wins (2020--2022)
 While ML people are building sophisticated surrogates, Sinai et al. (2020) builds FLEXS and shows something uncomfortable: a deliberately simple algorithm, AdaLead, beats BO, RL, and generative models across most benchmarks. AdaLead just picks the best sequences seen so far, mutates and recombines them, filters with a surrogate, and repeats. The implication: before you trust that your fancy BO is working, you need to beat AdaLead. Most papers don't.
-Ren et al. (2022 — PEX) adds one principled idea: stay close to wild-type. Sequences far from the training distribution will fool your surrogate. Add a proximity penalty to the acquisition function. This consistently beats standard BO and AdaLead. The key biological insight is that most real engineering wins involve only a handful of mutations, so constraining search to proximal variants loses little and gains reliability.
-Stanton et al. (2022 — LaMBO) goes the other direction — into latent space. Train a denoising autoencoder on sequences, do BO with a deep kernel learning GP in the latent space, gradient-ascend the acquisition function. Now you can propose sequences outside the measured pool. Validated in vitro on red fluorescent proteins.
+Ren et al. (2022 --- PEX) adds one principled idea: stay close to wild-type. Sequences far from the training distribution will fool your surrogate. Add a proximity penalty to the acquisition function. This consistently beats standard BO and AdaLead. The key biological insight is that most real engineering wins involve only a handful of mutations, so constraining search to proximal variants loses little and gains reliability.
+Stanton et al. (2022 --- LaMBO) goes the other direction --- into latent space. Train a denoising autoencoder on sequences, do BO with a deep kernel learning GP in the latent space, gradient-ascend the acquisition function. Now you can propose sequences outside the measured pool. Validated in vitro on red fluorescent proteins.
 
-Act 4: Language Models as Feature Extractors (2021–2023)
+Act 4: Language Models as Feature Extractors (2021--2023)
 The protein language model wave arrives. ESM1b (Rives et al. 2021) shows that a 650M parameter transformer trained on 250M sequences learns structural contacts, mutational effects, and conservation implicitly. ESM2 (Lin et al. 2023) scales this to 15B parameters and adds ESMFold. ProtTrans (Elnaggar et al.) brings the NLP BERT/T5 architectures over to proteins.
-The key tension that emerges: on combinatorial landscapes like GB1, ESM2 embeddings do not beat one-hot encoding. This gets confirmed independently by Wittmann, ALDE, and the BIBM 2024 paper. The intuition is that for 4-site combinatorics, the language model's evolutionary prior is noise — the task is interpolation, not generalization. ESM2 helps more when you need to generalize across sequence space, or when you have almost no data.
+The key tension that emerges: on combinatorial landscapes like GB1, ESM2 embeddings do not beat one-hot encoding. This gets confirmed independently by Wittmann, ALDE, and the BIBM 2024 paper. The intuition is that for 4-site combinatorics, the language model's evolutionary prior is noise --- the task is interpolation, not generalization. ESM2 helps more when you need to generalize across sequence space, or when you have almost no data.
 
 Act 5: The Current Frontier (2024)
 Two papers define where the field is now and are your most important reads:
-ALDE (Yang et al. 2024) is the methodological paper. It benchmarks every combination of encoding × model × acquisition on GB1 and TrpB, and finds: DNN ensemble + one-hot + Thompson Sampling wins. ESM2 doesn't help. Frequentist uncertainty (ensemble spread) beats Bayesian GP uncertainty. Then they take this into the wet lab — 5 active-site residues of a protoglobin enzyme, 3 rounds, 480 variants, 12% to 93% yield.
-EVOLVEpro (Jiang et al. 2024, Science) is the engineering paper. Same general idea — PLM + lightweight regression + active selection — but applied to six wildly different proteins (CRISPR nuclease, RNA polymerase, antibody, integrase) with as few as 16 variants per round. Up to 100-fold improvement in 3–4 rounds. This is the closest published analog to your work.
-Kirjner et al. (2024 — ICLR) is the one most people miss: they smooth the fitness landscape before optimizing it. Instead of worrying about the acquisition function, they make the surrogate itself easier to navigate via graph-based Tikhonov regularization + Gibbs sampling. Tested directly on GFP. If you're comparing numbers on the Sarkisyan dataset, this is your benchmark.
+ALDE (Yang et al. 2024) is the methodological paper. It benchmarks every combination of encoding $\times$ model $\times$ acquisition on GB1 and TrpB, and finds: DNN ensemble + one-hot + Thompson Sampling wins. ESM2 doesn't help. Frequentist uncertainty (ensemble spread) beats Bayesian GP uncertainty. Then they take this into the wet lab --- 5 active-site residues of a protoglobin enzyme, 3 rounds, 480 variants, 12% to 93% yield.
+EVOLVEpro (Jiang et al. 2024, Science) is the engineering paper. Same general idea --- PLM + lightweight regression + active selection --- but applied to six wildly different proteins (CRISPR nuclease, RNA polymerase, antibody, integrase) with as few as 16 variants per round. Up to 100-fold improvement in 3--4 rounds. This is the closest published analog to your work.
+Kirjner et al. (2024 --- ICLR) is the one most people miss: they smooth the fitness landscape before optimizing it. Instead of worrying about the acquisition function, they make the surrogate itself easier to navigate via graph-based Tikhonov regularization + Gibbs sampling. Tested directly on GFP. If you're comparing numbers on the Sarkisyan dataset, this is your benchmark.
 
 ------
 -. Dry study datasets
 Big datasets that enabled computattional
 Dataset 
-| Sarkisyan et al. | 2016 | avGFP (~51k variants, up to 15 mut) | — | — | — | ✓ | ✗ |
+| Sarkisyan et al. | 2016 | avGFP (~51k variants, up to 15 mut) | --- | --- | --- | $\checkmark$ | $\times$ |
 
 GFP NOTE Baselines. We choose a representative set of prior works that evaluated on GFP and AAV: GFlowNets
 (GFN-AL) (Jain et al., 2022), model-based adaptive sampling (CbAS) (Brookes et al., 2019), greedy
@@ -183,62 +179,52 @@ search (AdaLead) (Sinai et al., 2020), bayesian optimization (BO-qei) (Wilson et
 vative model-based optimization (CoMs) (Trabucco et al., 2021), and proximal exploration (PEX)
 (Ren et al., 2022). 
 
-GFP / avGFP (Sarkisyan et al. 2016 — ~52,000 variants, full protein, 239 residues, 1–15 mutations)
-Much less thoroughly benchmarked for BO specifically. The dataset is used differently — mostly as an oracle for generative methods and structure-based design, not for pool-based MLDE. Papers that touch it: PEX (Ren 2022) uses it as one of several benchmarks for proximal exploration; Kirjner 2024 tests landscape smoothing on it; LaMBO uses fluorescent proteins but with RFPs, not avGFP. Gonzalez Somermeyer 2022 trained neural networks on it (as an oracle for their genetic algorithm) but only one-hot, no PLMs. Biswas 2021 includes GFP but in a different regime.
+GFP / avGFP (Sarkisyan et al. 2016 --- ~52,000 variants, full protein, 239 residues, 1--15 mutations)
+Much less thoroughly benchmarked for BO specifically. The dataset is used differently --- mostly as an oracle for generative methods and structure-based design, not for pool-based MLDE. Papers that touch it: PEX (Ren 2022) uses it as one of several benchmarks for proximal exploration; Kirjner 2024 tests landscape smoothing on it; LaMBO uses fluorescent proteins but with RFPs, not avGFP. Gonzalez Somermeyer 2022 trained neural networks on it (as an oracle for their genetic algorithm) but only one-hot, no PLMs. Biswas 2021 includes GFP but in a different regime.
 
 
 
 
-GFP / avGFP (Sarkisyan 2016 — ~52,000 variants, fluorescence)
-PaperMethodSuccess MetricBudgetNotesBrookes & Listgarten 2018 (DbAS)VAE generative modelFitness of generated sequences vs oracleNot fixed — generativeNot pool-based; proposes novel sequencesBrookes et al. 2019 (CbAS)VAE + importance weightingMax predicted fitness; fraction above thresholdNot fixed — generativeSame — generative paradigm, not pool-basedPEX Ren et al. 2022Proximal BO, proximity-regularised acquisitionNormalized max fitness achieved; NDCG score384–960 oracle callsGFP is one of 8 DMS datasets; pool-based on SarkisyanGonzalez Somermeyer et al. 2022NN oracle + genetic algorithmWet-lab fluorescence of generated variantsNot fixed — generativeGenerative oracle paradigm; no surrogate BOKirjner et al. 2024Smoothed BO + Gibbs samplingNormalized max fitness achieved; comparison to baselines256–1,024 oracle callsDirectly on Sarkisyan pool; best GFP BO numbers in literatureLaMBO Stanton 2022DAE + DKL-GPPareto front on Stability + SASANot fixedUses RFPs, not avGFP — not directly comparable
+GFP / avGFP (Sarkisyan 2016 --- ~52,000 variants, fluorescence)
+PaperMethodSuccess MetricBudgetNotesBrookes \& Listgarten 2018 (DbAS)VAE generative modelFitness of generated sequences vs oracleNot fixed --- generativeNot pool-based; proposes novel sequencesBrookes et al. 2019 (CbAS)VAE + importance weightingMax predicted fitness; fraction above thresholdNot fixed --- generativeSame --- generative paradigm, not pool-basedPEX Ren et al. 2022Proximal BO, proximity-regularised acquisitionNormalized max fitness achieved; NDCG score384--960 oracle callsGFP is one of 8 DMS datasets; pool-based on SarkisyanGonzalez Somermeyer et al. 2022NN oracle + genetic algorithmWet-lab fluorescence of generated variantsNot fixed --- generativeGenerative oracle paradigm; no surrogate BOKirjner et al. 2024Smoothed BO + Gibbs samplingNormalized max fitness achieved; comparison to baselines256--1,024 oracle callsDirectly on Sarkisyan pool; best GFP BO numbers in literatureLaMBO Stanton 2022DAE + DKL-GPPareto front on Stability + SASANot fixedUses RFPs, not avGFP --- not directly comparable
 
 
-Key landscape findings — the numbers you need
+Key landscape findings --- the numbers you need
 
 At least 75% of single mutations are deleterious to fluorescence
 9.4% of single mutations confer >5-fold decrease
 Half of all 4-mutant variants are completely non-fluorescent
-Negative epistasis affects up to 30% of all genotypes — the joint effect of multiple mutations is worse than the sum of their individual effects
+Negative epistasis affects up to 30% of all genotypes --- the joint effect of multiple mutations is worse than the sum of their individual effects
 Positive epistasis is rare, ~1% of pairs
-Epistasis was found among 96% of mutations with weak individual effects — mutations that individually barely matter interact epistatically with each other
+Epistasis was found among 96% of mutations with weak individual effects --- mutations that individually barely matter interact epistatically with each other
 
-| Wu et al. (GB1) | 2016 | GB1 (160k variants, 4-site) | — | — | — | ✓ | ✗ |
-GB1 (Wu et al. 2016 — 149,361 variants, 4-site combinatorial, IgG binding)
-This is the most-studied benchmark by far. Nearly everything has been tested here: Wu 2019 established MLDE on it, Wittmann 2021 ran the exhaustive encoding × model × training set ablation on it, Biswas 2021 tested low-N PLM engineering on it, ALDE 2024 ran all their computational benchmarks on it, Greenberg 2023 benchmarked UQ methods on it, and the BIBM 2024 paper tested embedding-space BO on it. AdaLead, CbAS, DbAS, DyNA-PPO have all been evaluated here too. It's saturated. The landscape properties are well-characterized: highly epistatic, 92% holes, 30 local optima, indirect paths to the global optimum.
+| Wu et al. (GB1) | 2016 | GB1 (160k variants, 4-site) | --- | --- | --- | $\checkmark$ | $\times$ |
+GB1 (Wu et al. 2016 --- 149,361 variants, 4-site combinatorial, IgG binding)
+This is the most-studied benchmark by far. Nearly everything has been tested here: Wu 2019 established MLDE on it, Wittmann 2021 ran the exhaustive encoding $\times$ model $\times$ training set ablation on it, Biswas 2021 tested low-N PLM engineering on it, ALDE 2024 ran all their computational benchmarks on it, Greenberg 2023 benchmarked UQ methods on it, and the BIBM 2024 paper tested embedding-space BO on it. AdaLead, CbAS, DbAS, DyNA-PPO have all been evaluated here too. It's saturated. The landscape properties are well-characterized: highly epistatic, 92% holes, 30 local optima, indirect paths to the global optimum.
 
-GB1 (Wu et al. 2016 — 149,361 filtered variants, binding affinity)
+GB1 (Wu et al. 2016 --- 149,361 filtered variants, binding affinity)
 PaperMethodSuccess MetricBudgetNotes
-Wu et al. 2019MLDE, one-hot + ensembleMean fitness of top-96 predicted; fraction above threshold96–480 labelsFirst use of GB1 as oracle
-Wittmann et al. 2021MLDE / ftMLDE, one-hot + various encodingsGlobal optimum hit rate (fraction of 50 replicates finding the maximum); average max fitness96–480 labels81× improvement over single-step greedy
-Biswas et al. 2021ESM1b embeddings + linear regressionAverage fitness of top predictions24–384 labelsLow-N focus; GB1 one benchmark among severalALDE Yang et al. 2024DNN ensemble + one-hot + Thompson SamplingAverage max fitness achieved; fraction reaching global optimum120–2,016 total (multiple rounds of 120–480)Matched budget comparison across encoding × model × acquisitionLi et al. 2024MLDE / ftMLDE / ALDE / ftALDE, one-hot + boosting ensembleAverage max fitness achieved; fraction reaching global optimum120–2,016 totalGB1 is 1 of 16 landscapes; same metrics as ALDEGreenberg et al. 2023GP, MC-Dropout, ensemble, conformal predictionUQ calibration metrics (ECE, CRPS); downstream active learning fitness96–384 labelsNot an optimization study; evaluates UQ qualityBIBM 2024BO in ESM2 latent space vs one-hotMax fitness achieved; computational costVariousGP surrogate; embedding-space BO
+Wu et al. 2019MLDE, one-hot + ensembleMean fitness of top-96 predicted; fraction above threshold96--480 labelsFirst use of GB1 as oracle
+Wittmann et al. 2021MLDE / ftMLDE, one-hot + various encodingsGlobal optimum hit rate (fraction of 50 replicates finding the maximum); average max fitness96--480 labels81$\times$ improvement over single-step greedy
+Biswas et al. 2021ESM1b embeddings + linear regressionAverage fitness of top predictions24--384 labelsLow-N focus; GB1 one benchmark among severalALDE Yang et al. 2024DNN ensemble + one-hot + Thompson SamplingAverage max fitness achieved; fraction reaching global optimum120--2,016 total (multiple rounds of 120--480)Matched budget comparison across encoding $\times$ model $\times$ acquisitionLi et al. 2024MLDE / ftMLDE / ALDE / ftALDE, one-hot + boosting ensembleAverage max fitness achieved; fraction reaching global optimum120--2,016 totalGB1 is 1 of 16 landscapes; same metrics as ALDEGreenberg et al. 2023GP, MC-Dropout, ensemble, conformal predictionUQ calibration metrics (ECE, CRPS); downstream active learning fitness96--384 labelsNot an optimization study; evaluates UQ qualityBIBM 2024BO in ESM2 latent space vs one-hotMax fitness achieved; computational costVariousGP surrogate; embedding-space BO
 What's comparable on GB1: Wittmann, ALDE, and Li et al. all report global optimum hit rate and average max fitness at matched budgets (480 total samples is the common reference point Li et al. use). Wu 2019 uses a slightly different metric (top-96 mean) so not directly comparable but directionally consistent. Greenberg is not an optimization paper and cannot be compared.
 Critical caveat: Wittmann uses 50 replicates, ALDE and Li et al. use 50 replicates, Wu 2019 uses fewer. Comparable only within similar replicate counts.
 
 
 
-| Johnston et al. | 2024 | TrpB (160k variants, 4-site) | — | — | — | ✓ | ✗ |
+| Johnston et al. | 2024 | TrpB (160k variants, 4-site) | --- | --- | --- | $\checkmark$ | $\times$ |
 
 
-PaperMethodSuccess MetricBudgetNotesALDE Yang et al. 2024DNN ensemble + one-hot + Thompson SamplingAverage max fitness achieved; fraction reaching global optimum120–2,016 totalComputational benchmark only; same setup as GB1 armLi et al. 2024MLDE / ftMLDE / ALDE / ftALDEAverage max fitness achieved; fraction reaching global optimum120–2,016 total10 TrpB landscapes; dominant dataset in paper
+PaperMethodSuccess MetricBudgetNotesALDE Yang et al. 2024DNN ensemble + one-hot + Thompson SamplingAverage max fitness achieved; fraction reaching global optimum120--2,016 totalComputational benchmark only; same setup as GB1 armLi et al. 2024MLDE / ftMLDE / ALDE / ftALDEAverage max fitness achieved; fraction reaching global optimum120--2,016 total10 TrpB landscapes; dominant dataset in paper
 
 
-| Romero & Arnold | 2009 | Multiple proteins (review) | — | — | — | — | ✗ |
+| Romero \& Arnold | 2009 | Multiple proteins (review) | --- | --- | --- | --- | $\times$ |
 
 
-| Arnold | 1998 | Various enzymes | Random mutagenesis | — | — | ✓ | ✗ |
+| Arnold | 1998 | Various enzymes | Random mutagenesis | --- | --- | $\checkmark$ | $\times$ |
 
 
-| Stemmer | 1994 | β-lactamase | DNA shuffling | — | — | ✓ | ✗ |
-
-
-
-
-3. Relevant wet studies
-Now circling back to more general methods and starting wet again more systematically 
-PROGEN? (what were the others) . Mention that the field
-(ALDE)~\cite{Yang2025} --- established that this choice is not neutral: the optimal encoding
-depends on which surrogate model is used.
-Evolvepro
+| Stemmer | 1994 | $\beta$-lactamase | DNA shuffling | --- | --- | $\checkmark$ | $\times$ |
 
 
 
@@ -246,7 +232,9 @@ Evolvepro
 
 
 
+% #endregion
 ----------------------------------
+% #region [DRAFT] Methodology notes
 Methodology
 * Embedding/main model
 * Surrogate model
@@ -260,7 +248,7 @@ Proteins are the molecular machines of life.
 Whether a protein fluoresces, catalyses a chemical reaction, or binds a target depends
 exquisitely on its amino acid sequence, yet only a tiny fraction of all possible sequences
 folds into a functional structure.
-Directed evolution~\cite{Romero2009, Packer2015} mimics natural selection in the laboratory:
+Directed evolution~\cite{Romero2009}\textbf{[TODO: cite Packer2015]} mimics natural selection in the laboratory:
 sequences are mutated, expressed, assayed for a target property, and the best-performing
 variants are propagated into the next generation of experiments.
 While powerful, the approach is inherently combinatorial --- the number of possible sequences grows
@@ -341,7 +329,7 @@ functional selection could transform the specificity and stability of industrial
 without any knowledge of the underlying molecular mechanism~\cite{Romero2009}.
 This paradigm --- \emph{directed evolution} --- exploited natural selection as an optimisation
 algorithm: diversity is introduced into a gene pool by error-prone PCR, DNA shuffling, or
-saturation mutagenesis~\cite{Stemmer1994}, and the best-performing variants are identified
+saturation mutagenesis~\textbf{[TODO: cite Stemmer1994]}, and the best-performing variants are identified
 by a functional assay and carried forward as parents for the next round.
 The approach proved remarkably general, and its development was recognised with the Nobel Prize
 in Chemistry in 2018.
@@ -355,7 +343,7 @@ sequences --- at the edge of what a well-equipped laboratory can screen in a sin
 For full-protein engineering with mutations distributed across the entire sequence, exhaustive
 coverage is impossible.
 
-The introduction of deep mutational scanning (DMS)~\cite{Fowler2014} partially addressed
+The introduction of deep mutational scanning (DMS)~\textbf{[TODO: cite Fowler2014]} partially addressed
 this bottleneck by coupling high-throughput DNA synthesis and next-generation sequencing to
 functional selection.
 In a DMS experiment, a library encoding many thousands of protein variants is simultaneously
@@ -396,8 +384,8 @@ for full-protein variants, a sparse vector of mutation identities indexed to the
 One-hot encodings contain no learned biological information and treat all amino acid substitutions
 as equally distant.
 
-Physicochemical encodings such as AAIndex~\cite{Kawashima2000} or the Georgiev reduced
-alphabet~\cite{Georgiev2009} map each amino acid to a small number of empirically measured
+Physicochemical encodings such as AAIndex~\textbf{[TODO: cite Kawashima2000]} or the Georgiev reduced
+alphabet~\textbf{[TODO: cite Georgiev2009]} map each amino acid to a small number of empirically measured
 properties (volume, hydrophobicity, charge, secondary structure propensity), offering
 a low-dimensional representation with biological inductive bias.
 
@@ -426,7 +414,7 @@ surrogate models~\cite{Yang2025}.
 \paragraph{Surrogate models.}
 The three dominant surrogate families in the MLDE literature are random forests (RF)~\cite{Wu2019},
 Gaussian processes (GP)~\cite{Romero2009}, and deep neural network (DNN)
-ensembles~\cite{Lakshminarayanan2017}.
+ensembles~\textbf{[TODO: cite Lakshminarayanan2017]}.
 Random forests offer simplicity, robustness to small training sets, and out-of-bag uncertainty
 estimates via variance across trees, but their uncertainty estimates are known to be poorly
 calibrated in sparse input regions.
@@ -436,7 +424,7 @@ exact GP inference scales as $\mathcal{O}(n^3)$ in the number of training points
 their use to datasets of a few thousand samples without approximations.
 DNN ensembles --- typically five or more independently initialised multi-layer perceptrons ---
 offer the expressiveness needed to exploit high-dimensional PLM embeddings and produce
-uncertainty estimates via ensemble disagreement~\cite{Lakshminarayanan2017};
+uncertainty estimates via ensemble disagreement~\textbf{[TODO: cite Lakshminarayanan2017]};
 they generally require more training data than RF or GP.
 
 Deep kernel learning (DKL)~\cite{Yang2025} combines a DNN feature extractor with a GP covariance
@@ -461,7 +449,7 @@ Given a surrogate that outputs a predicted mean $\hat{\mu}$ and uncertainty $\ha
 an acquisition function decides which sequences to label next.
 Greedy selection (rank by $\hat{\mu}$, select top-K) ignores uncertainty but is competitive
 in regimes with large training sets.
-Upper confidence bound (UCB; select by $\hat{\mu} + \beta\hat{\sigma}$)~\cite{Srinivas2010}
+Upper confidence bound (UCB; select by $\hat{\mu} + \beta\hat{\sigma}$)~\textbf{[TODO: cite Srinivas2010]}
 provides a tunable exploration-exploitation trade-off.
 Thompson sampling draws a fitness function from the posterior and greedily optimises
 it~\cite{Yang2025}, providing implicit diversity in the selected batch.
@@ -480,7 +468,7 @@ proxies~\cite{Notin2022Tranception, Hie2024}.
 These zero-shot scores are competitive with supervised surrogates in very-low-data regimes
 and provide a strong baseline that any supervised method should exceed before the additional
 cost of labelled data is considered justified.
-The ProteinGym benchmark~\cite{Notin2023ProteinGym} provides a comprehensive evaluation of
+The ProteinGym benchmark~\textbf{[TODO: cite Notin2023ProteinGym]} provides a comprehensive evaluation of
 zero-shot predictors across 217 proteins and over 1.5 million variants.
 
 \paragraph{Two paradigms: generative search versus pool-based selection.}
@@ -590,7 +578,7 @@ variable positions --- does not directly apply to avGFP, where variable position
 from variant to variant.
 
 \paragraph{ProteinGym and FLIP.}
-The ProteinGym benchmark~\cite{Notin2023ProteinGym} aggregates DMS data for 217 proteins and
+The ProteinGym benchmark~\textbf{[TODO: cite Notin2023ProteinGym]} aggregates DMS data for 217 proteins and
 evaluates zero-shot fitness predictors.
 The FLIP benchmark~\cite{Dallago2021FLIP} provides standardised splits for supervised fitness
 prediction.
@@ -600,7 +588,7 @@ landscape regimes.
 
 \paragraph{Evaluation metrics.}
 Spearman's rank correlation coefficient $\rho$ is the dominant evaluation metric in both
-zero-shot benchmarking~\cite{Notin2023ProteinGym} and MLDE studies~\cite{Wu2019, Yang2025}.
+zero-shot benchmarking~\textbf{[TODO: cite Notin2023ProteinGym]} and MLDE studies~\cite{Wu2019, Yang2025}.
 It measures the monotonic association between predicted and measured fitness ranks across the
 full test set.
 The $R^2$ coefficient of determination is also widely reported.
@@ -687,26 +675,10 @@ minimum labelling budget at which each encoding-surrogate pair is competitive.
 \clearpage
 
 %% ---------------------------------------------------------------
-\section{Methods}
+\section{Methods} 
 \label{sec:methods}
 \thispagestyle{empty}
 
-\subsection{Datasets}
-\label{sec:methods:data}
-
-\paragraph{GB1.}
-The GB1 dataset is obtained from the SaProtHub repository (SaProtHub/Dataset-GB1-fitness)
-and the FLIP benchmark~\cite{Dallago2021FLIP}, using the standard two-versus-rest split
-in which any variant containing at least one of the four wild-type amino acids is held out
-for testing.
-% TODO: confirm exact split and filtering; describe hole handling (near-zero threshold)
-
-\paragraph{avGFP.}
-The avGFP dataset is obtained from the MaveDB repository using the Sarkisyan et al.\
-accession (MaveDB:00000055-a-1) and is preprocessed to retain only
-variants with valid fluorescence measurements and between one and nine amino acid substitutions
-relative to the wild type.
-% TODO: confirm exact filtering; report final n_train and n_test
 
 \subsection{Sequence Encodings}
 \label{sec:methods:encodings}
@@ -733,7 +705,7 @@ and reduce the dilution effect of averaging over invariant positions.
 % TODO: confirm implementation; handle multi-site variants
 
 \paragraph{AAIndex physicochemical features.}
-Each amino acid substitution is encoded using a selected subset of AAIndex~\cite{Kawashima2000}
+Each amino acid substitution is encoded using a selected subset of AAIndex~\textbf{[TODO: cite Kawashima2000]}
 indices covering hydrophobicity, volume, charge, and secondary structure propensity.
 % TODO: specify which indices; describe aggregation for multi-site variants
 
@@ -746,14 +718,14 @@ and default hyperparameters.
 % TODO: report full hyperparameter set; describe out-of-bag uncertainty estimate
 
 \paragraph{Gaussian process.}
-An exact GP with a radial basis function (RBF) kernel is trained using GPyTorch~\cite{Gardner2018}.
+An exact GP with a radial basis function (RBF) kernel is trained using GPyTorch~\textbf{[TODO: cite Gardner2018]}.
 Kernel hyperparameters are optimised by marginal likelihood maximisation.
 Inputs are standardised to zero mean and unit variance before fitting.
 % TODO: describe kernel; training set size cap for avGFP (GP scales as O(n^3))
 
 \paragraph{DNN ensemble.}
 An ensemble of five independent multi-layer perceptrons is trained with identical architecture
-but different random initialisations~\cite{Lakshminarayanan2017}.
+but different random initialisations~\textbf{[TODO: cite Lakshminarayanan2017]}.
 Each network has two hidden layers of 256 units with ReLU activations.
 Uncertainty is estimated as the standard deviation of ensemble predictions.
 % TODO: confirm architecture; training details (lr, batch size, epochs)
@@ -782,77 +754,29 @@ $n \in \{50, 100, 200, 500, 1000, 2000, 5000, 10000\}$ with five seeds per confi
 \clearpage
 
 %% ---------------------------------------------------------------
+\section{Datasets}
+\label{sec:methods:data}
+
+\paragraph{GB1.}
+The GB1 dataset is obtained from the SaProtHub repository (SaProtHub/Dataset-GB1-fitness)
+and the FLIP benchmark~\cite{Dallago2021FLIP}, using the standard two-versus-rest split
+in which any variant containing at least one of the four wild-type amino acids is held out
+for testing.
+% TODO: confirm exact split and filtering; describe hole handling (near-zero threshold)
+
+\paragraph{avGFP.}
+The avGFP dataset is obtained from the MaveDB repository using the Sarkisyan et al.\
+accession (MaveDB:00000055-a-1) and is preprocessed to retain only
+variants with valid fluorescence measurements and between one and nine amino acid substitutions
+relative to the wild type.
+% TODO: confirm exact filtering; report final n_train and n_test
 \section{Results}
-\label{sec:results}
-\thispagestyle{empty}
 
-\subsection{ESM2 Mean Pooling versus One-Hot Features on avGFP}
-\label{sec:results:esm2-onehot}
-
-\paragraph{Preliminary finding (avGFP, RF, n=10{,}000).}
-A random forest surrogate trained on ESM2 mean-pooled embeddings (1280-dimensional, ESM2-650M)
-achieves $R^2 = 0.469 \pm 0.003$ on the avGFP held-out set,
-virtually identical to the same surrogate trained on one-hot mutation features
-($R^2 = 0.466 \pm 0.001$, $n = 5$ independent runs).
-The difference is not statistically significant.
-Despite comparable $R^2$, Precision@100 is low for both encoding strategies (3--9\%),
-indicating that the models correctly rank the broad fitness distribution but struggle to
-concentrate the top-100 highest-fitness variants at the top of their predicted lists.
-
-% TODO: add full results table across all encoding x surrogate x dataset combinations
-% TODO: add Spearman rho values and learning curve figure
-
-\subsection{Learning Curves}
-\label{sec:results:learning-curves}
-
-% TODO: report crossover training set size at which ESM2 and one-hot strategies diverge
-% (preliminary data suggests crossover around n~200-500 for Spearman rho on avGFP)
-
-\subsection{GB1 Benchmark}
-\label{sec:results:gb1}
-
-% TODO: report GB1 results once experiments are run
-% Expected: results should be consistent with Yang et al. (2025) ALDE findings
-
-\subsection{Delta Embedding Evaluation}
-\label{sec:results:delta}
-
-% TODO: compare delta embedding vs mean pool vs one-hot; test hypothesis that delta
-% embedding partially recovers PLM advantage in sparse regime
-
-\clearpage
-
-%% ---------------------------------------------------------------
+- Show nice graphs
 \section{Discussion and Conclusions}
-\label{sec:conclusions}
-\thispagestyle{empty}
-
-\subsection{Summary of Findings}
-
-% TODO: summarise main results once experiments are complete
-
-\subsection{Implications for Protein Engineering Practice}
-
-% TODO: practical guidance for choosing encoding-surrogate combinations under different budgets
-% Key message: for RF/GP surrogates, one-hot or physicochemical encodings are competitive with ESM2
-% and much cheaper to compute. ESM2 embeddings are only worth the compute cost when paired with
-% a DNN or DKL surrogate and sufficient training data.
-
-\subsection{Limitations}
-
-% TODO: discuss offline-only evaluation (no iterative wet-lab loop), single-protein-per-regime
-% limitation, absence of multi-round active learning simulation
-
-\subsection{Future Work}
-
-Promising directions include:
-replacing the random forest with an AdaLead greedy baseline to test whether BO-style
-acquisition adds value over simple hill-climbing;
-extending the benchmark to the TrpB dataset to confirm GB1 findings generalise
-across dense combinatorial landscapes;
-evaluating ESM3 embeddings as replacements for ESM2;
-and simulating multi-round active learning with observation noise to approximate the
-online setting studied in the wet-lab MLDE literature.
+- findings
+- limitations
+- Future work
 
 \clearpage
 \printbibliography[heading=bibintoc]
@@ -862,7 +786,4 @@ online setting studied in the wet-lab MLDE literature.
 \thesisappendix
 \section{Experimental Configuration}
 \label{app:config}
-
-% TODO: full hyperparameter tables, software versions, compute environment details
-
 \end{document}
