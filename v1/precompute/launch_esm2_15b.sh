@@ -25,13 +25,8 @@ pip install transformers accelerate pandas numpy datasets -q
 
 # ── 3. Pre-download model once (avoids 4x simultaneous 30GB downloads) ────────
 echo "=== Pre-downloading ESM2-15B (~30GB) ==="
-python - <<'EOF'
-from transformers import AutoTokenizer, EsmModel
-import torch
-AutoTokenizer.from_pretrained("facebook/esm2_t48_15B_UR50D")
-EsmModel.from_pretrained("facebook/esm2_t48_15B_UR50D", torch_dtype=torch.float16, use_safetensors=True)
-print("Download complete.")
-EOF
+pip install huggingface_hub -q
+huggingface-cli download facebook/esm2_t48_15B_UR50D --cache-dir /workspace/hf_cache
 
 # ── 4. Launch 4 workers — all missing jobs ────────────────────────────────────
 cd /workspace/protein/v1
