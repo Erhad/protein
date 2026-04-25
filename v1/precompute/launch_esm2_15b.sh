@@ -40,10 +40,11 @@ EOF
 cd /workspace/protein/v1
 JOBS="gb1 trpb tev t7"
 
-echo "=== Launching 4 workers for: $JOBS ==="
-for rank in 0 1 2 3; do
+WORLD=6
+echo "=== Launching ${WORLD} workers for: $JOBS ==="
+for rank in $(seq 0 $((WORLD-1))); do
     python precompute/runpod_esm2_15b.py \
-        --rank $rank --world 4 \
+        --rank $rank --world $WORLD \
         --only $JOBS \
         > /tmp/esm2_15b_rank${rank}.log 2>&1 &
 done

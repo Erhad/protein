@@ -34,7 +34,7 @@ PROTEINS = [
         "hf":      None,
         "seq_col": "protein",
         "n":       149361,
-        "batch":   256,
+        "batch":   None,  # auto
         "outputs": [
             # meanpool already computed — skip by not listing it here
             {
@@ -51,7 +51,7 @@ PROTEINS = [
         "hf":      "SaProtHub/Dataset-TrpB_fitness_landsacpe",
         "seq_col": "protein",
         "n":       160000,
-        "batch":   32,
+        "batch":   None,  # auto
         "outputs": [
             # meanpool already computed — skip
             {
@@ -68,7 +68,7 @@ PROTEINS = [
         "hf":      None,
         "seq_col": "protein",
         "n":       159132,
-        "batch":   64,
+        "batch":   None,  # auto
         "outputs": [
             {
                 "key":   "tev_meanpool",
@@ -90,7 +90,7 @@ PROTEINS = [
         "hf":      None,
         "seq_col": "protein",
         "n":       6725,
-        "batch":   8,  # length-883 sequences
+        "batch":   None,  # auto
         "outputs": [
             {
                 "key":   "t7_meanpool",
@@ -133,11 +133,26 @@ model = EsmModel.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, use_safe
 model.to(DEVICE).eval()
 print(f"Loaded in {time.time()-t0:.1f}s", flush=True)
 
+MODEL_VRAM_GB = 30.0  # ESM2-15B fp16
+
+def auto_batch(seq_len: int) -> int:
+    """Fill available VRAM with as large a batch as safely fits."""
+    if not torch.cuda.is_available():
+        return 4
+    total_gb  = torch.cuda.get_device_properties(gpu_id).total_memory / 1e9
+    free_gb   = total_gb - MODEL_VRAM_GB
+    # Rough activation budget: seq_len * EMB_DIM * 4 bytes * ~12 (layers + attn) per sequence
+    bytes_per_seq = seq_len * EMB_DIM * 4 * 12
+    batch = max(1, int(free_gb * 1e9 * 0.8 / bytes_per_seq))  # 80% of free VRAM
+    return min(batch, 512)  # cap at 512
+
 
 def embed_protein(sequences: list, protein: dict, rank: int) -> dict[str, np.ndarray]:
     """One forward pass per batch — extract all outputs from the same hidden states."""
     n      = len(sequences)
-    batch  = protein["batch"]
+    seq_len = len(sequences[0])
+    batch  = protein["batch"] or auto_batch(seq_len)
+    print(f"  batch={batch} (seq_len={seq_len})", flush=True)
     outs   = protein["outputs"]
 
     results = {}
