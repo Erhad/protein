@@ -16,5 +16,466 @@
   {}
 \endgroup
 
+
+\refsection{0}
+  \datalist[entry]{nyt/global//global/global/global}
+    \entry{dallagoFLIPBenchmarkTasks2021}{online}{}{}
+      \name{author}{8}{}{%
+        {{hash=381edeaec659df830008a0b2d8646834}{%
+           family={Dallago},
+           familyi={D\bibinitperiod},
+           given={Christian},
+           giveni={C\bibinitperiod}}}%
+        {{hash=918f1ff46ed17da8d2714f7599ad63a8}{%
+           family={Mou},
+           familyi={M\bibinitperiod},
+           given={Jody},
+           giveni={J\bibinitperiod}}}%
+        {{hash=22a6d217a498073703a545a8fd5c73a2}{%
+           family={Johnston},
+           familyi={J\bibinitperiod},
+           given={Kadina\bibnamedelima E.},
+           giveni={K\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=ec38aea90c0168e6d7e7593d0a9ccd0d}{%
+           family={Wittmann},
+           familyi={W\bibinitperiod},
+           given={Bruce\bibnamedelima J.},
+           giveni={B\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=f4f5d97535cf69f25c84dc827bcafb6f}{%
+           family={Bhattacharya},
+           familyi={B\bibinitperiod},
+           given={Nicholas},
+           giveni={N\bibinitperiod}}}%
+        {{hash=b913ace70b2a48bec07a0c2e9ab8171d}{%
+           family={Goldman},
+           familyi={G\bibinitperiod},
+           given={Samuel},
+           giveni={S\bibinitperiod}}}%
+        {{hash=82a280e6ae0c08fb654c81669231621b}{%
+           family={Madani},
+           familyi={M\bibinitperiod},
+           given={Ali},
+           giveni={A\bibinitperiod}}}%
+        {{hash=0837c65556048e36828029d2b553b3c8}{%
+           family={Yang},
+           familyi={Y\bibinitperiod},
+           given={Kevin\bibnamedelima K.},
+           giveni={K\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{56b67157d16d3b5433a32f8f6950b73f}
+      \strng{fullhash}{ec31bb170fa7aab53145a427832326af}
+      \strng{fullhashraw}{ec31bb170fa7aab53145a427832326af}
+      \strng{bibnamehash}{56b67157d16d3b5433a32f8f6950b73f}
+      \strng{authorbibnamehash}{56b67157d16d3b5433a32f8f6950b73f}
+      \strng{authornamehash}{56b67157d16d3b5433a32f8f6950b73f}
+      \strng{authorfullhash}{ec31bb170fa7aab53145a427832326af}
+      \strng{authorfullhashraw}{ec31bb170fa7aab53145a427832326af}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{shorttitle}
+      \field{abstract}{Abstract Machine learning could enable an unprecedented level of control in protein engineering for therapeutic and industrial applications. Critical to its use in designing proteins with desired properties, machine learning models must capture the protein sequence-function relationship, often termed fitness landscape . Existing bench-marks like CASP or CAFA assess structure and function predictions of proteins, respectively, yet they do not target metrics relevant for protein engineering. In this work, we introduce Fitness Landscape Inference for Proteins (FLIP), a benchmark for function prediction to encourage rapid scoring of representation learning for protein engineering. Our curated tasks, baselines, and metrics probe model generalization in settings relevant for protein engineering, e.g. low-resource and extrapolative. Currently, FLIP encompasses experimental data across adeno-associated virus stability for gene therapy, protein domain B1 stability and immunoglobulin binding, and thermostability from multiple protein families. In order to enable ease of use and future expansion to new tasks, all data are presented in a standard format. FLIP scripts and data are freely accessible at https://benchmark.protein.properties .}
+      \field{day}{11}
+      \field{eprinttype}{Bioengineering}
+      \field{langid}{english}
+      \field{month}{11}
+      \field{pubstate}{prepublished}
+      \field{shorttitle}{{{FLIP}}}
+      \field{title}{{{FLIP}}: {{Benchmark}} Tasks in Fitness Landscape Inference for Proteins}
+      \field{urlday}{25}
+      \field{urlmonth}{4}
+      \field{urlyear}{2026}
+      \field{year}{2021}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{doi}
+      \verb 10.1101/2021.11.09.467890
+      \endverb
+      \verb{file}
+      \verb /Users/aleksanderheino/Zotero/storage/98S7KBMC/Dallago et al. - 2021 - FLIP Benchmark tasks in fitness landscape inference for proteins.pdf
+      \endverb
+      \verb{urlraw}
+      \verb http://biorxiv.org/lookup/doi/10.1101/2021.11.09.467890
+      \endverb
+      \verb{url}
+      \verb http://biorxiv.org/lookup/doi/10.1101/2021.11.09.467890
+      \endverb
+    \endentry
+    \entry{hayesSimulating500Million}{article}{}{}
+      \name{author}{25}{}{%
+        {{hash=a8b5b0082392b8cdb81e0cc8e3506b2f}{%
+           family={Hayes},
+           familyi={H\bibinitperiod},
+           given={Thomas},
+           giveni={T\bibinitperiod}}}%
+        {{hash=0f3a8501ead10f233eccda0b53bf0bd1}{%
+           family={Rao},
+           familyi={R\bibinitperiod},
+           given={Roshan},
+           giveni={R\bibinitperiod}}}%
+        {{hash=15ffaf478ac80f96892efadcc2a135a6}{%
+           family={Akin},
+           familyi={A\bibinitperiod},
+           given={Halil},
+           giveni={H\bibinitperiod}}}%
+        {{hash=010b3465d62ca06b20bb19d4933cb4db}{%
+           family={Sofroniew},
+           familyi={S\bibinitperiod},
+           given={Nicholas\bibnamedelima J},
+           giveni={N\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=0dde184cb7dff710cd72fb1ee6d10b92}{%
+           family={Oktay},
+           familyi={O\bibinitperiod},
+           given={Deniz},
+           giveni={D\bibinitperiod}}}%
+        {{hash=c40352c194e60a3ef458ee7e8685afb5}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Zeming},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=46be631e87cb978c860e4b0fa1d4887b}{%
+           family={Verkuil},
+           familyi={V\bibinitperiod},
+           given={Robert},
+           giveni={R\bibinitperiod}}}%
+        {{hash=1a35b471748d0a0d5a3bad5c0cf7be04}{%
+           family={Tran},
+           familyi={T\bibinitperiod},
+           given={Vincent\bibnamedelima Q},
+           giveni={V\bibinitperiod\bibinitdelim Q\bibinitperiod}}}%
+        {{hash=93caf9fc920914164f56b329edd522f9}{%
+           family={Deaton},
+           familyi={D\bibinitperiod},
+           given={Jonathan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=dd509fa8df7f3a654dbccf95a59cd329}{%
+           family={Wiggert},
+           familyi={W\bibinitperiod},
+           given={Marius},
+           giveni={M\bibinitperiod}}}%
+        {{hash=410e07ace3d35b5e05d7d8a243a6b841}{%
+           family={Badkundri},
+           familyi={B\bibinitperiod},
+           given={Rohil},
+           giveni={R\bibinitperiod}}}%
+        {{hash=fb5f9b98aba52760a2307fdc05da55f7}{%
+           family={Shafkat},
+           familyi={S\bibinitperiod},
+           given={Irhum},
+           giveni={I\bibinitperiod}}}%
+        {{hash=e5cf80adf9b60d1400677771251751e4}{%
+           family={Gong},
+           familyi={G\bibinitperiod},
+           given={Jun},
+           giveni={J\bibinitperiod}}}%
+        {{hash=57822b8d67eaec213e38abd2f9068467}{%
+           family={Derry},
+           familyi={D\bibinitperiod},
+           given={Alexander},
+           giveni={A\bibinitperiod}}}%
+        {{hash=4ad34d2b02558ad2a37e4396c8d63f54}{%
+           family={Molina},
+           familyi={M\bibinitperiod},
+           given={Raul\bibnamedelima S},
+           giveni={R\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=7b0421c03fd99e25bed92869d4cdcb41}{%
+           family={Thomas},
+           familyi={T\bibinitperiod},
+           given={Neil},
+           giveni={N\bibinitperiod}}}%
+        {{hash=27f641d509ff35a16a8243ebdd12f0e0}{%
+           family={Khan},
+           familyi={K\bibinitperiod},
+           given={Yousuf},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=026b3d9c140b6a2e47783d79be7cb928}{%
+           family={Mishra},
+           familyi={M\bibinitperiod},
+           given={Chetan},
+           giveni={C\bibinitperiod}}}%
+        {{hash=2113c2e20303973b8ba73286d95cdcf3}{%
+           family={Kim},
+           familyi={K\bibinitperiod},
+           given={Carolyn},
+           giveni={C\bibinitperiod}}}%
+        {{hash=511f72a198fd306ae225fb23eaee6a4c}{%
+           family={Bartie},
+           familyi={B\bibinitperiod},
+           given={Liam\bibnamedelima J},
+           giveni={L\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=b7cf8175e15f1eef7f32c48654214da1}{%
+           family={Nemeth},
+           familyi={N\bibinitperiod},
+           given={Matthew},
+           giveni={M\bibinitperiod}}}%
+        {{hash=f92bee55282b37c3aa0912c6f9c9077f}{%
+           family={Hsu},
+           familyi={H\bibinitperiod},
+           given={Patrick\bibnamedelima D},
+           giveni={P\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=21e17f70ffb714b5a29005c2a54cec93}{%
+           family={Sercu},
+           familyi={S\bibinitperiod},
+           given={Tom},
+           giveni={T\bibinitperiod}}}%
+        {{hash=2499e63435eed12a242cf416ef474e2a}{%
+           family={Candido},
+           familyi={C\bibinitperiod},
+           given={Salvatore},
+           giveni={S\bibinitperiod}}}%
+        {{hash=77c951217a087dd3f5981a0a79a87222}{%
+           family={Rives},
+           familyi={R\bibinitperiod},
+           given={Alexander},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{7e82b56fee37593fdd582517345e0a40}
+      \strng{fullhash}{f25fe229cedb0fbc507ae724f6ec6e46}
+      \strng{fullhashraw}{f25fe229cedb0fbc507ae724f6ec6e46}
+      \strng{bibnamehash}{7e82b56fee37593fdd582517345e0a40}
+      \strng{authorbibnamehash}{7e82b56fee37593fdd582517345e0a40}
+      \strng{authornamehash}{7e82b56fee37593fdd582517345e0a40}
+      \strng{authorfullhash}{f25fe229cedb0fbc507ae724f6ec6e46}
+      \strng{authorfullhashraw}{f25fe229cedb0fbc507ae724f6ec6e46}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{More than three billion years of evolution have produced an image of biology encoded into the space of natural proteins. Here we show that language models trained on tokens generated by evolution can act as evolutionary simulators to generate functional proteins that are far away from known proteins. We present ESM3, a frontier multimodal generative language model that reasons over the sequence, structure, and function of proteins. ESM3 can follow complex prompts combining its modalities and is highly responsive to biological alignment. We have prompted ESM3 to generate fluorescent proteins with a chain of thought. Among the generations that we synthesized, we found a bright fluorescent protein at far distance (58\% identity) from known fluorescent proteins. Similarly distant natural fluorescent proteins are separated by over five hundred million years of evolution.}
+      \field{langid}{english}
+      \field{title}{Simulating 500 Million Years of Evolution with a Language Model}
+      \verb{file}
+      \verb /Users/aleksanderheino/Zotero/storage/S424PJUL/Hayes et al. - Simulating 500 million years of evolution with a language model.pdf
+      \endverb
+    \endentry
+    \entry{jiangRapidProteinEvolution2024}{online}{}{}
+      \name{author}{12}{}{%
+        {{hash=fc414a896d1f1c35ed03a9e90d44a553}{%
+           family={Jiang},
+           familyi={J\bibinitperiod},
+           given={Kaiyi},
+           giveni={K\bibinitperiod}}}%
+        {{hash=da07e6440f6a29189c7013734df9832a}{%
+           family={Yan},
+           familyi={Y\bibinitperiod},
+           given={Zhaoqing},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=fe0f7e425e6e7464fe1dce593cd2d4a8}{%
+           family={Bernardo},
+           familyi={B\bibinitperiod},
+           given={Matteo\bibnamedelima Di},
+           giveni={M\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=0f88b05e387ac2cf56f9ec58a0835c21}{%
+           family={Sgrizzi},
+           familyi={S\bibinitperiod},
+           given={Samantha\bibnamedelima R.},
+           giveni={S\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=e9c2eabb0b93a2700fef54b85fc342fd}{%
+           family={Villiger},
+           familyi={V\bibinitperiod},
+           given={Lukas},
+           giveni={L\bibinitperiod}}}%
+        {{hash=7f8a727fb5d1f673198a4269086b1ee3}{%
+           family={Kayabolen},
+           familyi={K\bibinitperiod},
+           given={Alisan},
+           giveni={A\bibinitperiod}}}%
+        {{hash=23429210e1ecd424ec25100ea85d6293}{%
+           family={Kim},
+           familyi={K\bibinitperiod},
+           given={Byungji},
+           giveni={B\bibinitperiod}}}%
+        {{hash=6d6299abfc4f137b6d077d8da6732772}{%
+           family={Carscadden},
+           familyi={C\bibinitperiod},
+           given={Josephine\bibnamedelima K.},
+           giveni={J\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=7ea05875cc0624d39bf237c48d1e0cb6}{%
+           family={Hiraizumi},
+           familyi={H\bibinitperiod},
+           given={Masahiro},
+           giveni={M\bibinitperiod}}}%
+        {{hash=8a7a438f8586bf2f8894da574dc83734}{%
+           family={Nishimasu},
+           familyi={N\bibinitperiod},
+           given={Hiroshi},
+           giveni={H\bibinitperiod}}}%
+        {{hash=ef4f5986e46c7a49d5c6a0a18393d48c}{%
+           family={Gootenberg},
+           familyi={G\bibinitperiod},
+           given={Jonathan\bibnamedelima S.},
+           giveni={J\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=38393cddfcf30ed6d8f4c021e3111687}{%
+           family={Abudayyeh},
+           familyi={A\bibinitperiod},
+           given={Omar\bibnamedelima O.},
+           giveni={O\bibinitperiod\bibinitdelim O\bibinitperiod}}}%
+      }
+      \strng{namehash}{9a0c4751cbcfd593bfd0e9640f3bbced}
+      \strng{fullhash}{9e21ccff2c94121867303a76cff878ae}
+      \strng{fullhashraw}{9e21ccff2c94121867303a76cff878ae}
+      \strng{bibnamehash}{9a0c4751cbcfd593bfd0e9640f3bbced}
+      \strng{authorbibnamehash}{9a0c4751cbcfd593bfd0e9640f3bbced}
+      \strng{authornamehash}{9a0c4751cbcfd593bfd0e9640f3bbced}
+      \strng{authorfullhash}{9e21ccff2c94121867303a76cff878ae}
+      \strng{authorfullhashraw}{9e21ccff2c94121867303a76cff878ae}
+      \field{sortinit}{J}
+      \field{sortinithash}{b2f54a9081ace9966a7cb9413811edb4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Abstract Directed evolution of proteins is critical for applications in basic biological research, therapeutics, diagnostics, and sustainability. However, directed evolution methods are labor intensive, cannot efficiently optimize over multiple protein properties, and are often trapped by local maxima. In silico- directed evolution methods incorporating protein language models (PLMs) have the potential to accelerate this engineering process, but current approaches fail to generalize across diverse protein families. We introduce EVOLVEpro, a few-shot active learning framework to rapidly improve protein activity using a combination of PLMs and protein activity predictors, achieving improved activity with as few as four rounds of evolution. EVOLVEpro substantially enhances the efficiency and effectiveness of in silico protein evolution, surpassing current state-of-the-art methods and yielding proteins with up to 100-fold improvement of desired properties. We showcase EVOLVEpro for five proteins across three applications: T7 RNA polymerase for RNA production, a miniature CRISPR nuclease, a prime editor, and an integrase for genome editing, and a monoclonal antibody for epitope binding. These results demonstrate the advantages of few-shot active learning with small amounts of experimental data over zero-shot predictions. EVOLVEpro paves the way for broader applications of AI-guided protein engineering in biology and medicine.}
+      \field{day}{18}
+      \field{eprinttype}{Bioengineering}
+      \field{langid}{english}
+      \field{month}{7}
+      \field{pubstate}{prepublished}
+      \field{title}{Rapid Protein Evolution by Few-Shot Learning with a Protein Language Model}
+      \field{urlday}{25}
+      \field{urlmonth}{4}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{doi}
+      \verb 10.1101/2024.07.17.604015
+      \endverb
+      \verb{file}
+      \verb /Users/aleksanderheino/Zotero/storage/6JYDYDEJ/Jiang et al. - 2024 - Rapid protein evolution by few-shot learning with a protein language model.pdf
+      \endverb
+      \verb{urlraw}
+      \verb http://biorxiv.org/lookup/doi/10.1101/2024.07.17.604015
+      \endverb
+      \verb{url}
+      \verb http://biorxiv.org/lookup/doi/10.1101/2024.07.17.604015
+      \endverb
+    \endentry
+    \entry{wittmannInformedTrainingSet2021}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=ec38aea90c0168e6d7e7593d0a9ccd0d}{%
+           family={Wittmann},
+           familyi={W\bibinitperiod},
+           given={Bruce\bibnamedelima J.},
+           giveni={B\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=d433272a8da287e7d9b17c3f80798a3f}{%
+           family={Yue},
+           familyi={Y\bibinitperiod},
+           given={Yisong},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=cde5c1a2f9765557c380c59930098eb6}{%
+           family={Arnold},
+           familyi={A\bibinitperiod},
+           given={Frances\bibnamedelima H.},
+           giveni={F\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+      }
+      \strng{namehash}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{fullhash}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{fullhashraw}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{bibnamehash}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{authorbibnamehash}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{authornamehash}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{authorfullhash}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \strng{authorfullhashraw}{5e52ae3bd2892e22ba9fd05c49fdbff4}
+      \field{sortinit}{W}
+      \field{sortinithash}{4315d78024d0cea9b57a0c6f0e35ed0d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{24054712}
+      \field{journaltitle}{Cell Systems}
+      \field{langid}{english}
+      \field{month}{11}
+      \field{number}{11}
+      \field{shortjournal}{Cell Systems}
+      \field{title}{Informed Training Set Design Enables Efficient Machine Learning-Assisted Directed Protein Evolution}
+      \field{urlday}{25}
+      \field{urlmonth}{4}
+      \field{urlyear}{2026}
+      \field{volume}{12}
+      \field{year}{2021}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \field{pages}{1026\bibrangedash 1045.e7}
+      \range{pages}{-1}
+      \verb{doi}
+      \verb 10.1016/j.cels.2021.07.008
+      \endverb
+      \verb{file}
+      \verb /Users/aleksanderheino/Zotero/storage/DPWVGEY6/Wittmann et al. - 2021 - Informed training set design enables efficient machine learning-assisted directed protein evolution.pdf
+      \endverb
+      \verb{urlraw}
+      \verb https://linkinghub.elsevier.com/retrieve/pii/S2405471221002866
+      \endverb
+      \verb{url}
+      \verb https://linkinghub.elsevier.com/retrieve/pii/S2405471221002866
+      \endverb
+    \endentry
+    \entry{yangActiveLearningAssistedDirected}{article}{}{}
+      \name{author}{9}{}{%
+        {{hash=3be417648b72c397f793f90284d1f994}{%
+           family={Yang},
+           familyi={Y\bibinitperiod},
+           given={Jason},
+           giveni={J\bibinitperiod}}}%
+        {{hash=402146c5051c1d25063e3108e7418dfc}{%
+           family={Lal},
+           familyi={L\bibinitperiod},
+           given={Ravi\bibnamedelima G},
+           giveni={R\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=d03c880fe593f25815c5025287ffe2b8}{%
+           family={Bowden},
+           familyi={B\bibinitperiod},
+           given={James\bibnamedelima C},
+           giveni={J\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=21607623868713ac1103d87bf98eb3d7}{%
+           family={Astudillo},
+           familyi={A\bibinitperiod},
+           given={Raul},
+           giveni={R\bibinitperiod}}}%
+        {{hash=55a3f698935afc249429c1fde8020a4c}{%
+           family={Hameedi},
+           familyi={H\bibinitperiod},
+           given={Mikhail\bibnamedelima A},
+           giveni={M\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=01ffa11635ef189915c569ca25bc59e9}{%
+           family={Kaur},
+           familyi={K\bibinitperiod},
+           given={Sukhvinder},
+           giveni={S\bibinitperiod}}}%
+        {{hash=ec6de740a9c03e9e213c3d9a4cba5676}{%
+           family={Hill},
+           familyi={H\bibinitperiod},
+           given={Matthew},
+           giveni={M\bibinitperiod}}}%
+        {{hash=d433272a8da287e7d9b17c3f80798a3f}{%
+           family={Yue},
+           familyi={Y\bibinitperiod},
+           given={Yisong},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=cde5c1a2f9765557c380c59930098eb6}{%
+           family={Arnold},
+           familyi={A\bibinitperiod},
+           given={Frances\bibnamedelima H},
+           giveni={F\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+      }
+      \strng{namehash}{5f88615d7bf5f3e7ac30291edd2c6b3b}
+      \strng{fullhash}{f0d9fd04c6db1aa014f1fe7f6185f934}
+      \strng{fullhashraw}{f0d9fd04c6db1aa014f1fe7f6185f934}
+      \strng{bibnamehash}{5f88615d7bf5f3e7ac30291edd2c6b3b}
+      \strng{authorbibnamehash}{5f88615d7bf5f3e7ac30291edd2c6b3b}
+      \strng{authornamehash}{5f88615d7bf5f3e7ac30291edd2c6b3b}
+      \strng{authorfullhash}{f0d9fd04c6db1aa014f1fe7f6185f934}
+      \strng{authorfullhashraw}{f0d9fd04c6db1aa014f1fe7f6185f934}
+      \field{sortinit}{Y}
+      \field{sortinithash}{fd67ad5a9ef0f7456bdd9aab10fe1495}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Directed evolution (DE) is a powerful tool to optimize protein fitness for a specific application. However, DE can be inefficient when mutations exhibit non-additive, or epistatic, behavior. Here, we present Active Learning-assisted Directed Evolution (ALDE), an iterative machine learningassisted DE workflow that leverages uncertainty quantification to explore the search space of proteins more efficiently than current DE methods. We apply ALDE to an engineering landscape that is challenging for DE: optimization of five epistatic residues in the active site of an enzyme. In three rounds of wet-lab experimentation, we improve the yield of a desired product of a nonnative cyclopropanation reaction from 12\% to 93\%. We also perform computational simulations on existing protein sequence-fitness datasets to support our argument that ALDE can be more effective than DE. Overall, ALDE is a practical and broadly applicable strategy to unlock improved protein engineering outcomes.}
+      \field{langid}{english}
+      \field{title}{Active {{Learning-Assisted Directed Evolution}}}
+      \verb{file}
+      \verb /Users/aleksanderheino/Zotero/storage/SHGSL3J8/Yang et al. - Active Learning-Assisted Directed Evolution.pdf
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
 \endinput
 

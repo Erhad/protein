@@ -1,0 +1,54 @@
+\section{Background}
+\subsection{Protein fitness landscapes}
+Proteins fold into 3D structures; function emerges from structure
+Multiple objectives: stability, yield, activity, thermotolerance
+
+- Most often multiple objectives (folding, temperature, yield)
+- Cannot just learn one physical property and generalize
+- fitness landscape is the map from sequence space to fitness value
+   - epistasis — mutations interact non-additively (add note here + saddle)
+   - ruggedness — many local optima
+   - sparsity — most sequences are non-functional
+\subsection{Search space}
+- Ok - so where are we playing. Field is intractable so need to make it more sparse
+- Wet lab vs non wet lab
+- Full sequence space is intractable 
+- Either look at few mutations away max, or look at combinatorial site landscapes
+\subsection{Search methods}
+--Turbo OG is just breeding
+- **Classical directed evolution:** mutate → express → assay → select
+      ; repeat
+   43   - works but greedy, gets stuck at local optima, expensive per itera
+      tion
+   44 - **MLDE:** train surrogate on labeled variants → predict fitness acr
+      oss unseen space → select next batch
+   45   - reduces experimental burden by screening computationally first
+   46   - one or multiple rounds
+   47 - **ALDE:** explicitly iterative MLDE with uncertainty-aware acquisit
+      ion
+   48   - acquisition function decides what to measure next (EI, PI, Thomps
+      on sampling, UCB)
+   49   - active learning loop: label → train → acquire → measure → repeat
+   50 - Sequence representations: sequences must be converted to numerical
+      features before any ML model can use them — the choice of representat
+      ion is a core design decision (elaborated in Methods)
+
+
+\subsection{The ALDE loop}
+
+Active learning directed evolution (ALDE) is an iterative optimisation strategy that interleaves computational modelling with wet-lab measurement. The core idea is to spend the experimental budget where the model believes it will be most informative or most rewarding, rather than screening sequences blindly.
+
+Every ALDE method is built from four components: an \textbf{initialisation strategy} that selects the first batch of variants to measure before any model is available; a \textbf{sequence encoding} that converts amino acid sequences into numerical feature vectors a machine learning model can consume; a \textbf{surrogate model} trained on the labeled observations to predict the fitness of unmeasured variants; and an \textbf{acquisition function} that uses the surrogate's predictions — and, where available, its uncertainty estimates — to select which variants to measure next.
+
+Given these components, the algorithm proceeds as follows:
+
+\begin{enumerate}
+  \item \textbf{Initialise.} Select a first batch of sequences using the initialisation strategy and measure their fitness in the lab.
+  \item \textbf{Encode.} Convert all sequences in the candidate pool to feature vectors using the chosen encoding.
+  \item \textbf{Train.} Fit the surrogate model on the labeled observations accumulated so far.
+  \item \textbf{Acquire.} Score all unlabeled candidates with the acquisition function and select the top batch to measure next.
+  \item \textbf{Measure.} Send the selected batch to the lab, obtain fitness values, and add them to the labeled set.
+  \item \textbf{Repeat} from step 3 until the experimental budget is exhausted.
+\end{enumerate}
+
+The choice of which components to use — and how they interact — determines how efficiently the budget is spent. Section~\ref{sec:methods} gives the formal treatment and details the specific components evaluated in this thesis.

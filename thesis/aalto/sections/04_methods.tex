@@ -1,0 +1,195 @@
+\section{Methods}  \label{sec:methods}
+
+\subsection{Problem formulation}
+
+Let $\mathcal{X}$ denote the discrete and finite sequence space of interest.  While $\mathcal{X}$ can in principle be arbitrary, in practice many encodings require additional structure: either for all sequences in $\mathcal{X}$ to share a fixed length $L$, giving $\mathcal{X} \subseteq \mathcal{A}^L$ where $\mathcal{A}$ is the amino acid alphabet, or for $\mathcal{X}$ to be a combinatorial landscape defined by $k$ variable positions, giving $\mathcal{X} = \mathcal{A}^k$ with $|\mathcal{X}| = 20^k$. In this thesis we assume $\mathcal{X}$ to be given and do not evaluate methods of constructing it.
+
+We assume each sequence $\mathbf{x} \in \mathcal{X}$ has an associated real-valued fitness $f(\mathbf{x}) \in \mathbb{R}$, defined in a context-specific manner. For example: IgG-binding enrichment for GB1 or fluorescence intensity for avGFP. Our goal is to select a set of sequences to evaluate such that the fitness among them is as maximized, subject to a query budget $N$ and batch size $b$. 
+
+\paragraph{General formulation.}
+Let $\mathcal{B}_t \subset \mathcal{X}$ denote the batches of equal-size sequences evaluated at round $t$ and $\mathbf{Y}_t = \bigl(f(\mathbf{x})\bigr)_{\mathbf{x} \in \mathcal{B}_t}$ their corresponding fitness values. Given a total query budget $N$ and batch size $b$, with $T = N/b$ rounds, find selection functions $g_0, g_1, \ldots, g_{T}$ that solve
+\begin{equation}
+\begin{aligned}
+  \max_{g_0,\,g_1,\ldots,g_{T}} \quad & \mathbb{E}\!\left[\max_{t \in \{0,\ldots,T\},\;\mathbf{x}\in\mathcal{B}_t} f(\mathbf{x})\right] \\
+  \text{s.t.} \quad
+    & \mathcal{B}_0 = g_0(\mathcal{X})\\
+    & \mathcal{B}_t = g_t(\mathcal{X}, \mathcal{B}_0, \mathbf{Y}_0, \ldots, \mathcal{B}_{t-1}, \mathbf{Y}_{t-1}), \quad |\mathcal{B}_t| = b, \quad t = 1,\ldots,T.
+\end{aligned}
+\label{equation:generalformulation}
+\end{equation}
+The only constraint is causality: each batch may only use observations from previous rounds. This formulation encompasses a wide range of methods. This generality makes it difficult to compare methods and identify the sources of their performance differences. Therefore, we use a standard tractable formulation that captures the common structure of most common methods used in active learning for directed evolution (ALDE) literature. \todo{add citations}
+
+\paragraph{Tractable formulation.}
+We restrict the problem space to a structured family of functions parametrised by four components:
+\begin{equation}
+\begin{aligned}
+  \max_{h,\,\phi,\,\hat{f},\,\alpha} \quad & \mathbb{E}\!\left[\max_{t \in \{0,\ldots,T\},\;\mathbf{x}\in\mathcal{B}_t} f(\mathbf{x})\right] \\[4pt]
+  \mathcal{B}_0 &= h(\mathcal{X}), \\
+  \hat{f}_t &= \hat{f}\bigl(\phi(\mathcal{B}_0),\,\mathbf{Y}_0,\;\ldots,\;\phi(\mathcal{B}_{t-1}),\,\mathbf{Y}_{t-1}\bigr), \\
+  \mathcal{B}_t &= \alpha\!\bigl(\hat{f}_t,\;\phi,\;\mathcal{X}\bigr), \quad t = 1,\ldots,T.
+\end{aligned}
+\label{equation:maximizationdefinition}
+\end{equation}
+Each component has a distinct role:
+\begin{description}
+  \item[$h$ (initialisation):] selects $\mathcal{B}_0$ from $\mathcal{X}$ without prior observations, e.g.\ by random sampling or domain knowledge.
+  \item[$\phi$ (sequence encoding):] maps each $\mathbf{x} \in \mathcal{X}$ to a feature vector $\phi(\mathbf{x}) \in \mathbb{R}^d$ on which surrogate can be trained.
+  \item[$\hat{f}_t$ (surrogate model):] trained on all encoded observations up to round $t$. The function $\hat{f}_t$ should provide predictions but can also provide uncertainty estimates to be used by the acquisition function.
+  \item[$\alpha$ (acquisition function):] selects the next batch of sequences based on the surrogate model's predictions and candidate encodings. This thesis focuses on acquisition functions that depend solely on surrogate fitness and uncertainty predictions. More complex batch acquisition functions for batch diversity or joint expected improvement are outside of scope for this thesis.
+\end{description}
+This thesis evaluates a range of combinations of these components on multiple protein fitness landscapes.
+
+\subsection{Initialization}
+The initialisation strategy $h$ selects the first batch $\mathcal{B}_0$ before any surrogate is trained.
+Because the surrogate at round $t = 1$ is fitted entirely on $\mathcal{B}_0$, the quality and diversity of this seed set can have an outsized effect on downstream optimisation as shown by \todo{CITATION}.
+We compare three strategies as outlined below.
+
+\subsubsection{Random}
+Sequences are drawn uniformly at random from $\mathcal{X}$ without any prior information.
+Random initialisation is the most common baseline in the directed evolution literature \todo{cite} and serves as the reference against which informed strategies are evaluated.
+
+\subsubsection{Double-mutant zero-shot (ZS)}
+Following \cite{li2024active}, the candidate pool is restricted to sequences within Hamming distance $\leq 2$ of the wild-type, and $b$ sequences are sampled without replacement with probability proportional to $\mathrm{softmax}(\texttt{ev\_score})$.
+The \texttt{ev\_score} is a zero-shot fitness predictor derived from an evolutionary model (EVmutation; see Section~\ref{sec:background} for a discussion of zero-shot predictors), which estimates the effect of mutations from patterns of conservation and co-evolution in a multiple sequence alignment, requiring no labeled fitness data.
+Restricting to near-wild-type variants leverages the observation that single- and double-mutant fitness landscapes are better characterised by evolutionary models than higher-order combinatorial variants, while softmax-weighted sampling introduces stochasticity to avoid over-exploiting the predictor.
+
+\subsubsection{Cluster-stratified.}
+To encourage broad coverage of the sequence space, $\mathcal{X}$ is first filtered to the top 25\% of variants by a combined zero-shot score (\texttt{ev-esm-esmif\_score}), reducing the search space to evolutionarily plausible candidates.
+The retained variants are then clustered in embedding space using HDBSCAN (applied after dimensionality reduction via PCA and UMAP), and $b$ sequences are allocated equally across clusters with remainder filled at random.
+The rationale is that a surrogate trained on a single dense region of sequence space generalises poorly; spreading the seed set across structurally distinct clusters ensures the initial model has broader coverage of the fitness landscape.
+
+\subsection{Sequence encodings}
+The sequence encoding $\phi : \mathcal{X} \to \mathbb{R}^d$ converts a discrete amino acid sequence into a fixed-length vector on which the surrogate can be trained.
+We evaluate three families of encodings.
+
+\subsubsection{One-hot}
+\begin{itemize}
+  \item Binary indicator over the $k$ variable positions: each site contributes a 20-dimensional indicator over the amino acid alphabet, giving $d = 20k$.
+  \item No pre-training required; captures identity at variable sites but ignores full protein context and inter-residue interactions.
+  \item Strong baseline for small combinatorial landscapes \todo{cite Wittmann}.
+\end{itemize}
+
+\subsubsection{ESM-2-15B}
+\begin{itemize}
+  \item Protein language model (PLM) pre-trained on hundreds of millions of natural sequences; captures evolutionary context and residue co-variation \todo{cite Lin ESM2}.
+  \item Two model sizes: 650\,M parameters ($d_\text{hidden}=1280$) and 15\,B parameters ($d_\text{hidden}=5120$).
+  \item Two extraction strategies: \emph{4-site} — extract per-residue embeddings at the $k$ variable positions and concatenate ($d = k \times d_\text{hidden}$); \emph{mean-pool} — average over all residue positions ($d = d_\text{hidden}$).
+  \item Mean-pooling integrates whole-sequence context; site-specific extraction retains position-level information at the mutated residues.
+\end{itemize}
+
+\subsubsection{ESMc 600M}
+\begin{itemize}
+  \item Latest-generation EvolutionaryScale model (ESM Cambrian), pre-trained with a generative objective on sequence and structure \todo{cite ESMc}.
+  \item $d_\text{hidden}=1152$; we extract embeddings at the $k$ variable sites and concatenate ($d = k \times 1152$).
+  \item Compared to ESM-2, ESMc uses a more expressive pre-training objective and is expected to encode richer fitness-relevant features.
+\end{itemize}
+
+\subsection{Surrogate models}
+
+The surrogate $\hat{f}_t$ approximates the unknown fitness oracle $f$ from the labeled observations $\mathcal{D}_{t-1}$. All surrogates operate on encoded feature vectors $\phi(\mathbf{x}) \in \mathbb{R}^d$; inputs are standardised to zero mean and unit variance before training. We evaluate three surrogates that differ in their inductive biases and in the quality of uncertainty estimates they provide.
+
+\subsubsection{Random forest}
+
+A random forest (RF) \todo{cite Breiman 2001} is an ensemble of $M$ regression trees, each grown independently using the following process:
+\begin{enumerate}
+  \item Pick a bootstrap sample $\mathcal{D}^{(m)}$ of size $n$ by sampling with replacement from $\mathcal{D}_{t-1}$.
+  \item If the node contains fewer than \texttt{min\_samples\_leaf} points, declare it a leaf; its prediction is the mean of its targets. Stop.
+  \item Otherwise, draw a random subset of $p \leq d$ candidate features 
+  \item For each candidate feature $j$ and each unique threshold $s$ in the node's data, compute the split score
+    \begin{equation}
+      \Delta_\text{MSE}(j, s) = \frac{n_L n_R}{n_L + n_R}\bigl(\bar{y}_L - \bar{y}_R\bigr)^2,
+    \end{equation}
+    where $n_L, n_R$ and $\bar{y}_L, \bar{y}_R$ are the counts and target means of the left ($\phi_j \leq s$) and right ($\phi_j > s$) children.
+  \item Select $(j^*, s^*)$ maximising $\Delta_\text{MSE}$ and partition the node's points accordingly.
+  \item Recurse on the left and right child nodes independently.
+\end{enumerate}
+Trees are grown without pruning. While individual trees overfit, the ensemble average corrects for this.
+
+\paragraph{Prediction.}
+Given an encoding $\boldsymbol{\phi} \in \mathbb{R}^d$, each tree routes $\boldsymbol{\phi}$ to a leaf and returns its mean.
+The ensemble prediction is the averaged prediction across all trees:
+\begin{equation}
+  \hat{\mu}(\boldsymbol{\phi}) = \frac{1}{M}\sum_{m=1}^{M} T_m(\boldsymbol{\phi}).
+\end{equation}
+
+While RF has been proven to provide consistent estimates of the true regression function under certain strong assumptions \todo{cite something}, in practice for our use case its usefulnesss is grounded in its strong empirical performance across a wide range of regression tasks, not in a theoretical guarantee of being unbiased.
+
+\paragraph{Uncertainty estimation.}
+Random forests provide no posterior distribution over $f$, so uncertainty must be extracted as a heuristic from the ensemble. Four approaches are common in the literature:
+
+\begin{itemize}
+  \item \textbf{Ensemble variance}: the spread of the $M$ tree predictions at $\boldsymbol{\phi}$,
+    \begin{equation}
+      \hat{\sigma}^2(\boldsymbol{\phi}) = \frac{1}{M}\sum_{m=1}^{M}\bigl(T_m(\boldsymbol{\phi}) - \hat{\mu}(\boldsymbol{\phi})\bigr)^2.
+    \end{equation}
+    Trees disagree more in regions with little training data or high complexity, so this correlates with uncertainty in practice. Due to nature of random forests uncertainty can also be significantly overestimated, since individual trees are trained on bootstrap samples and thus have high variance themselves.
+
+  \item \textbf{Infinitesimal jackknife (IJ) \todo{cite Wager 2014 and make this and next section better. Not high quality ATM}:} estimates how much the forest's prediction would change if the training set were redrawn from the same distribution. In theory a principled estimate of uncertainty,but not the uncertainty of the surrogate's predictions but rather the uncertainty of the forest as an estimator of the true regression function. 
+
+  \item \textbf{Quantile regression forests \todo{cite Meinshausen 2006}:} stores the full distribution of training targets in each leaf rather than just their mean, and returns empirical quantiles as prediction intervals. Requires many training points per leaf to be meaningful, making it poorly suited to the low-data regime of active learning.\todo{is this even true}
+
+  \item \textbf{Sub-ensemble sampling (used in this work for TS):} draw $k$ trees uniformly at random without replacement and average their predictions to produce one function sample $\tilde{f}_k(\boldsymbol{\phi}) = \frac{1}{k}\sum_{m \in S_k} T_m(\boldsymbol{\phi})$, where $S_k$ is the sampled subset. The implicit per-point variance of this estimator is $\hat{\sigma}^2_k(\boldsymbol{\phi}) = \hat{\sigma}^2_1(\boldsymbol{\phi}) / k$, where $\hat{\sigma}^2_1$ is the single-tree variance. At $k=1$ this recovers a single-tree draw (maximum noise); at $k=M$ it collapses to the deterministic ensemble mean. This approach implements Thompson sampling by treating each sub-ensemble draw as a sample from an implicit posterior over $f$, and is grounded in bootstrapped Thompson sampling \todo{cite Osband 2015, Eckles 2014}. It is also used in the ALDE benchmark \todo{cite Yang 2025} with $k = M/5$.
+\end{itemize}
+This thesis uses sub-ensemble sampling. Hyperparameter tuning is opened up on section \todo{add here} to evaluate which ensemle sub-sample size provides optimal performance and whether it differs across landscapes.
+
+\subsubsection{Gaussian process}
+
+A Gaussian process (GP) places a prior directly over functions: $f \sim \mathcal{GP}(0,\, k_{\theta}(\cdot,\cdot))$, where $k_\theta$ is a kernel parameterised by $\theta$. We use the Mat\'{e}rn $\nu = \tfrac{3}{2}$ kernel,
+\begin{equation}
+k_\theta(\boldsymbol{\phi}, \boldsymbol{\phi}') = \alpha^2\!\left(1 + \frac{\sqrt{3}\,\|\boldsymbol{\phi}-\boldsymbol{\phi}'\|}{\ell}\right)\exp\!\left(-\frac{\sqrt{3}\,\|\boldsymbol{\phi}-\boldsymbol{\phi}'\|}{\ell}\right),
+\end{equation}
+with output scale $\alpha^2$ and length-scale $\ell$. Assuming Gaussian observation noise $\epsilon \sim \mathcal{N}(0, \sigma_n^2)$, the posterior at a test point $\boldsymbol{\phi}_*$ is
+\begin{align}
+\mu_t(\boldsymbol{\phi}_*) &= \mathbf{k}_*^\top\!\left(\mathbf{K} + \sigma_n^2\mathbf{I}\right)^{-1}\mathbf{y}, \\
+\sigma_t^2(\boldsymbol{\phi}_*) &= k(\boldsymbol{\phi}_*,\boldsymbol{\phi}_*) - \mathbf{k}_*^\top\!\left(\mathbf{K} + \sigma_n^2\mathbf{I}\right)^{-1}\mathbf{k}_*,
+\end{align}
+where $\mathbf{K}_{ij} = k_\theta(\boldsymbol{\phi}_i, \boldsymbol{\phi}_j)$ is the training kernel matrix and $\mathbf{k}_* = [k_\theta(\boldsymbol{\phi}_i, \boldsymbol{\phi}_*)]_i$. Hyperparameters $\theta = (\alpha, \ell, \sigma_n^2)$ are optimised by maximising the marginal log-likelihood with $R = 5$ random restarts to mitigate non-convexity. The GP provides the only \emph{principled} posterior uncertainty among the three surrogates; its $\sigma_t^2$ is a true posterior variance under the model assumptions.
+
+\subsubsection{DNN ensemble}
+
+A DNN ensemble consists of $M = 5$ independent feedforward networks $\{f_m\}_{m=1}^M$ with identical architecture but different random initialisations. Each network uses LeakyReLU activations, is trained with the Adam optimiser on MSE loss, and applies early stopping with a patience window of 30 iterations. To promote diversity, each member is trained on a random 90\% subsample (without replacement) of $\mathcal{D}_{t-1}$. The predictive mean and variance are
+\begin{align}
+\hat{\mu}(\boldsymbol{\phi}) &= \frac{1}{M}\sum_{m=1}^{M} f_m(\boldsymbol{\phi}), \\
+\hat{\sigma}^2(\boldsymbol{\phi}) &= \frac{1}{M}\sum_{m=1}^{M}\bigl(f_m(\boldsymbol{\phi}) - \hat{\mu}(\boldsymbol{\phi})\bigr)^2.
+\end{align}
+Two architectures are used depending on encoding: $[d, 30, 30, 1]$ for one-hot features (matching the ALDE baseline of \todo{cite Li 2024}) and $[d, 500, 150, 50, 1]$ for high-dimensional PLM embeddings. Uncertainty via ensemble disagreement is not theoretically calibrated but has been shown to be practically effective as an exploration signal in active learning settings \todo{cite}.
+
+\subsection{Acquisition functions}
+The acquisition function $\alpha$ scores each candidate $\mathbf{x} \in \mathcal{X}$ using the surrogate $\hat{f}_t$ and selects the top-$b$ as $\mathcal{B}_t$.
+All functions below use the surrogate mean $\hat{\mu}$ and, where applicable, uncertainty $\hat{\sigma}$; the current best observed fitness is $f^* = \max_{\mathbf{x} \in \mathcal{B}_0 \cup \cdots \cup \mathcal{B}_{t-1}} f(\mathbf{x})$.
+
+\subsubsection{Greedy}
+\begin{itemize}
+  \item Selects the $b$ sequences with the highest predicted mean: $\alpha(\mathbf{x}) = \hat{\mu}(\mathbf{x})$.
+  \item Pure exploitation; ignores uncertainty entirely.
+  \item Strong baseline when the surrogate is well-calibrated; collapses to random when uninformative.
+\end{itemize}
+
+\subsubsection{Upper Confidence Bound (UCB)}
+\begin{itemize}
+  \item $\alpha(\mathbf{x}) = \hat{\mu}(\mathbf{x}) + \beta\,\hat{\sigma}(\mathbf{x})$, with $\beta = 2.0$.
+  \item Explicitly rewards uncertain regions; $\beta = 0$ recovers greedy.
+  \item Derived from bandit theory \todo{cite Auer UCB}; $\beta$ trades exploitation for exploration.
+\end{itemize}
+
+\subsubsection{Expected Improvement (EI)}
+\begin{itemize}
+  \item $\alpha(\mathbf{x}) = \mathbb{E}[\max(\hat{f}(\mathbf{x}) - f^*, 0)]$, approximated as the average positive deviation from $f^*$ across ensemble members.
+  \item Balances exploitation and exploration; focuses budget on sequences likely to exceed the current best.
+  \item Classical Bayesian optimisation acquisition function \todo{cite Mockus EI}.
+\end{itemize}
+
+\subsubsection{Probability of Improvement (PI)}
+\begin{itemize}
+  \item $\alpha(\mathbf{x}) = P(\hat{f}(\mathbf{x}) > f^*)$, approximated as the fraction of ensemble members predicting above $f^*$.
+  \item More risk-averse than EI: scores any improvement equally regardless of magnitude.
+  \item Tends to be greedier than EI in practice, concentrating on sequences just above the current best \todo{cite Kushner PI}.
+\end{itemize}
+
+\subsubsection{Thompson Sampling (TS)}
+\begin{itemize}
+  \item For each position in the batch, independently sample one ensemble member and select the highest-scoring remaining candidate under that member's predictions.
+  \item Per-step resampling naturally diversifies the batch without any explicit diversity penalty.
+  \item For RF, the number of trees averaged per draw ($\mathit{ts\_k}$) controls noise: $\mathit{ts\_k}=1$ is maximally exploratory; $\mathit{ts\_k}=M$ collapses to greedy.
+  \item Exact implementation follows \cite{li2024active} for the DNN ensemble case.
+\end{itemize}

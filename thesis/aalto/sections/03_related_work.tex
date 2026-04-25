@@ -1,0 +1,62 @@
+\section{Related work}
+\subsection{Current State of the Art and Open Questions}
+\label{sec:litrev:sota}
+
+The ALDE benchmark~\cite{yangActiveLearningAssistedDirected} is the most systematic published comparison of
+encoding-surrogate-acquisition function combinations to date.
+Testing all combinations of four encodings (one-hot, AAIndex/Georgiev, ESM2 site-specific),
+four surrogate types (boosting ensemble, GP, DNN ensemble, DKL), and two acquisition functions
+(greedy, Thompson sampling) on GB1 and TrpB, it established that:
+(i)\ the DNN ensemble with Thompson sampling is the best overall strategy across conditions;
+(ii)\ ESM2 site-specific embeddings improve performance when paired with DNN or DKL surrogates;
+and (iii)\ non-deep surrogates benefit little or not at all from richer encodings.
+These findings are consistent with the earlier observation by Wittmann et al.~\cite{wittmannInformedTrainingSet2021}
+that one-hot encoding outperforms more complex representations for non-deep models on GB1.
+
+EVOLVEpro~\cite{jiangRapidProteinEvolution2024} demonstrated a practical active learning system using
+ESM2-15B mean-pooled embeddings with a random forest surrogate, achieving measurable fitness
+improvements across five diverse protein targets in an iterative wet-lab setting.
+EVOLVEpro also reported a notable failure mode: PLM zero-shot fitness scores (log-likelihood
+ratios) showed near-zero or negative correlation with experimentally measured activity for
+several proteins, highlighting that evolutionary fitness and specific biological function are
+distinct quantities.
+
+ESM3~\cite{hayesSimulating500Million} introduced a multimodal generative PLM jointly modelling sequence,
+structure, and function tokens.
+At 98 billion parameters, the full model is computationally prohibitive for most research
+groups; however, smaller ESM C variants (300 million parameters) are more accessible and may
+provide embeddings competitive with ESM2 at lower computational cost.
+Whether ESM3 embeddings provide material benefits over ESM2 in supervised fitness prediction
+relevant to MLDE is not yet established.
+
+Three important questions remain unresolved at the time of writing.
+First, essentially all systematic encoding-surrogate benchmarks have been conducted on dense
+combinatorial libraries (GB1, TrpB); whether optimal pairings transfer to sparse full-protein
+landscapes such as avGFP is unknown.
+Second, the delta embedding approach has been proposed as a biologically motivated alternative
+to mean pooling but has not been benchmarked.
+Third, Precision@K as a primary evaluation metric for active learning in protein engineering
+remains underused; it is not clear how strongly encoding-surrogate combinations differ on
+this metric versus Spearman $\rho$.
+\subsection{Proteins}
+Our proteins specifically
+\subsection{Thesis contribution}
+\label{sec:litrev:rq}
+
+The preceding review motivates the central research question of this thesis:
+
+\begin{quote}
+  \emph{XXXX}
+\end{quote}
+
+More concretely, we test whether the relative ranking of four encoding strategies
+(one-hot mutation features, ESM2 mean-pooled, ESM2 delta, AAIndex physicochemical)
+across three surrogate models (random forest, Gaussian process, DNN ensemble) is consistent
+between GB1 and avGFP, and whether Spearman $\rho$ and Precision@K give concordant or
+divergent rankings.
+
+The work makes four concrete contributions.
+A
+B
+C
+D
