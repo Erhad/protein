@@ -129,7 +129,12 @@ print(f"[rank {RANK}/{WORLD}] GPU={gpu_id} ({DEVICE})", flush=True)
 print(f"Loading {MODEL_NAME} ...", flush=True)
 t0 = time.time()
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = EsmModel.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, use_safetensors=True)
+model = EsmModel.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=torch.float16,
+    use_safetensors=True,
+    attn_implementation="flash_attention_2",
+)
 model.to(DEVICE).eval()
 print(f"Loaded in {time.time()-t0:.1f}s", flush=True)
 

@@ -22,6 +22,7 @@ fi
 # ── 2. Install deps ───────────────────────────────────────────────────────────
 echo "=== Installing deps ==="
 pip install transformers accelerate pandas numpy datasets -q
+pip install flash-attn --no-build-isolation -q
 
 # ── 3. Pre-download model once (avoids 4x simultaneous 30GB downloads) ────────
 echo "=== Pre-downloading ESM2-15B (~30GB) ==="
