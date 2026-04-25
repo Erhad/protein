@@ -65,15 +65,13 @@ while len(done) < len(JOBS):
             lo, hi = int(data["lo"]), int(data["hi"])
             out[lo:hi] = data["embeddings"]
 
-        os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
-        np.save(job["out"], out)
-        size_gb = os.path.getsize(job["out"]) / 1e9
-        print(f"  Saved: {job['out']}  ({size_gb:.2f} GB)", flush=True)
-
-        send_path = f"/workspace/{key}.npy"
-        os.rename(job["out"], send_path)
+        # Save to /tmp (local SSD) to avoid /workspace network volume I/O errors
+        send_path = f"/tmp/{key}.npy"
+        np.save(send_path, out)
+        size_gb = os.path.getsize(send_path) / 1e9
+        print(f"  Saved: {send_path}  ({size_gb:.2f} GB)", flush=True)
         subprocess.run(["runpodctl", "send", send_path])
-        os.rename(send_path, job["out"])
+        os.remove(send_path)  # free /tmp space after send
 
         done.add(key)
         print(f"  Done. {len(done)}/{len(JOBS)} jobs complete.", flush=True)
