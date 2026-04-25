@@ -34,7 +34,7 @@ PROTEINS = [
         "hf":      None,
         "seq_col": "protein",
         "n":       149361,
-        "batch":   16,
+        "batch":   256,
         "outputs": [
             # meanpool already computed — skip by not listing it here
             {
@@ -51,7 +51,7 @@ PROTEINS = [
         "hf":      "SaProtHub/Dataset-TrpB_fitness_landsacpe",
         "seq_col": "protein",
         "n":       160000,
-        "batch":   16,
+        "batch":   32,
         "outputs": [
             # meanpool already computed — skip
             {
@@ -68,7 +68,7 @@ PROTEINS = [
         "hf":      None,
         "seq_col": "protein",
         "n":       159132,
-        "batch":   16,
+        "batch":   64,
         "outputs": [
             {
                 "key":   "tev_meanpool",
@@ -90,7 +90,7 @@ PROTEINS = [
         "hf":      None,
         "seq_col": "protein",
         "n":       6725,
-        "batch":   4,  # length-883 sequences — keep batch small
+        "batch":   8,  # length-883 sequences
         "outputs": [
             {
                 "key":   "t7_meanpool",
