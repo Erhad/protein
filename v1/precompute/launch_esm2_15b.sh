@@ -26,7 +26,7 @@ pip install transformers accelerate pandas numpy datasets -q
 # ── 3. Pre-download model once (avoids 4x simultaneous 30GB downloads) ────────
 echo "=== Pre-downloading ESM2-15B (~30GB) ==="
 pip install huggingface_hub -q
-huggingface-cli download facebook/esm2_t48_15B_UR50D --cache-dir /workspace/hf_cache
+hf download facebook/esm2_t48_15B_UR50D --cache-dir /workspace/hf_cache
 
 # ── 4. Launch 4 workers — all missing jobs ────────────────────────────────────
 cd /workspace/protein/v1
