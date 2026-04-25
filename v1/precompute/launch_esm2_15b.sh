@@ -38,7 +38,7 @@ EOF
 
 # ── 4. Launch 4 workers — all missing jobs ────────────────────────────────────
 cd /workspace/protein/v1
-JOBS="gb1_nsite trpb_nsite tev_meanpool tev_nsite t7_meanpool t7_nsite"
+JOBS="gb1 trpb tev t7"
 
 echo "=== Launching 4 workers for: $JOBS ==="
 for rank in 0 1 2 3; do
