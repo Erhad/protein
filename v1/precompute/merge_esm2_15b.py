@@ -41,8 +41,8 @@ for job in JOBS:
         print(f"  {os.path.basename(path)}  [{lo}:{hi}]  shape={data['embeddings'].shape}")
         out[lo:hi] = data["embeddings"]
 
-    os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
-    np.save(job["out"], out)
-    size_gb = os.path.getsize(job["out"]) / 1e9
-    print(f"  Saved: {job['out']}  ({size_gb:.2f} GB)")
-    print(f"  Send:  runpodctl send {job['out']}")
+    tmp_path = f"/tmp/{key}.npy"
+    np.save(tmp_path, out)
+    size_gb = os.path.getsize(tmp_path) / 1e9
+    print(f"  Saved: {tmp_path}  ({size_gb:.2f} GB)")
+    print(f"  Send:  runpodctl send {tmp_path}")
