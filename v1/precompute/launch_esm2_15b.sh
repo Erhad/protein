@@ -1,6 +1,6 @@
 #!/bin/bash
-# Launch ESM2-15B mean-pool embedding on 4 GPUs, merge, and send.
-# Run this on a RunPod instance with 4x A100-80GB (or similar).
+# Launch ESM2-15B embedding workers on 4 GPUs, merge, and send.
+# Run on a RunPod instance with 4x A100-40GB or A100-80GB.
 #
 # Usage:
 #   bash precompute/launch_esm2_15b.sh
@@ -8,7 +8,6 @@
 set -e
 cd /workspace
 
-# Store HF model cache on /workspace (large network volume) not container disk
 export HF_HOME=/workspace/hf_cache
 
 # ── 1. Clone / update repo ────────────────────────────────────────────────────
@@ -24,37 +23,42 @@ fi
 echo "=== Installing deps ==="
 pip install transformers accelerate pandas numpy datasets -q
 
-# ── 3. Pre-download model once before workers start (avoids 4×30GB simultaneous downloads) ───
-echo "=== Pre-downloading ESM2-15B (~30GB, once) ==="
+# ── 3. Pre-download model once (avoids 4x simultaneous 30GB downloads) ────────
+echo "=== Pre-downloading ESM2-15B (~30GB) ==="
 python - <<'EOF'
 from transformers import AutoTokenizer, EsmModel
 import torch
-print("Downloading tokenizer...")
 AutoTokenizer.from_pretrained("facebook/esm2_t48_15B_UR50D")
-print("Downloading model weights (this takes a while)...")
 EsmModel.from_pretrained("facebook/esm2_t48_15B_UR50D", torch_dtype=torch.float16, use_safetensors=True)
 print("Download complete.")
 EOF
 
-# ── 4. Launch 4 workers ───────────────────────────────────────────────────────
+# ── 4. Launch 4 workers — all missing jobs ────────────────────────────────────
 cd /workspace/protein/v1
-echo "=== Launching 4 workers ==="
-python precompute/runpod_esm2_15b.py --rank 0 --world 7 --only trpb > /tmp/esm2_15b_rank0.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 1 --world 7 --only trpb > /tmp/esm2_15b_rank1.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 2 --world 7 --only trpb > /tmp/esm2_15b_rank2.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 3 --world 7 --only trpb > /tmp/esm2_15b_rank3.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 4 --world 7 --only trpb > /tmp/esm2_15b_rank4.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 5 --world 7 --only trpb > /tmp/esm2_15b_rank5.log 2>&1 &
-python precompute/runpod_esm2_15b.py --rank 6 --world 7 --only trpb > /tmp/esm2_15b_rank6.log 2>&1 &
+JOBS="gb1_nsite trpb_nsite tev_meanpool tev_nsite t7_meanpool t7_nsite"
 
-echo "Workers running. Logs: /tmp/esm2_15b_rank{0..6}.log"
-echo "Monitor with: tail -f /tmp/esm2_15b_rank0.log"
+echo "=== Launching 4 workers for: $JOBS ==="
+for rank in 0 1 2 3; do
+    python precompute/runpod_esm2_15b.py \
+        --rank $rank --world 4 \
+        --only $JOBS \
+        > /tmp/esm2_15b_rank${rank}.log 2>&1 &
+done
+
+echo "Workers running. Monitor: tail -f /tmp/esm2_15b_rank0.log"
 wait
 
-echo "=== All workers done. Merging... ==="
+# ── 5. Merge ──────────────────────────────────────────────────────────────────
+echo "=== Merging ==="
 python precompute/merge_esm2_15b.py
 
-echo "=== Sending to Mac (paste each code shown below) ==="
-runpodctl send /workspace/protein/v1/data/trpb/embeddings_esm2_15b_meanpool.npy
+# ── 6. Send to Mac ────────────────────────────────────────────────────────────
+echo "=== Sending files (paste each code on your Mac) ==="
+runpodctl send /workspace/protein/v1/data/gb1/embeddings_esm2_15b_4site.npy
+runpodctl send /workspace/protein/v1/data/trpb/embeddings_esm2_15b_4site.npy
+runpodctl send /workspace/protein/v1/data/tev/embeddings_esm2_15b_meanpool.npy
+runpodctl send /workspace/protein/v1/data/tev/embeddings_esm2_15b_4site.npy
+runpodctl send /workspace/protein/v1/data/t7/embeddings_esm2_15b_meanpool.npy
+runpodctl send /workspace/protein/v1/data/t7/embeddings_esm2_15b_3site.npy
 
 echo "=== Done! ==="

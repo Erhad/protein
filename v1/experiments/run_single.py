@@ -115,6 +115,58 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/tev/embeddings_esm2_15b_meanpool.npy",
     },
+    # ── New: ESM2-15B N-site ───────────────────────────────────────────────────
+    "gb1_esm2_15b_4site": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_15b_4site.npy",
+    },
+    "trpb_esm2_15b_4site": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/trpb/embeddings_esm2_15b_4site.npy",
+    },
+    "tev_esm2_15b_4site": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/tev/embeddings_esm2_15b_4site.npy",
+    },
+    "t7_esm2_15b_3site": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/t7/embeddings_esm2_15b_3site.npy",
+    },
+    # ── New: ESMc meanpool ────────────────────────────────────────────────────
+    "gb1_esmc_mean": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esmc600m_meanpool.npy",
+    },
+    "trpb_esmc_mean": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/trpb/embeddings_esmc600m_meanpool.npy",
+    },
+    "tev_esmc": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/tev/embeddings_esmc600m_4site.npy",
+    },
+    "tev_esmc_mean": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/tev/embeddings_esmc600m_meanpool.npy",
+    },
+    "t7_esmc": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/t7/embeddings_esmc600m_3site.npy",
+    },
+    "t7_esmc_mean": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/t7/embeddings_esmc600m_meanpool.npy",
+    },
 }
 
 
@@ -132,10 +184,20 @@ LANDSCAPE_EMB = {
     "trpb_esmc":         "esmc600m_4site",
     "trpb_esm2_15b":     "esm15b_mean",
     "trpb_onehot":       "onehot",
-    "t7_onehot":         "onehot",
-    "t7_esm2_15b":       "esm15b_mean",
-    "tev_onehot":        "onehot",
-    "tev_esm2_15b":      "esm15b_mean",
+    "t7_onehot":            "onehot",
+    "t7_esm2_15b":          "esm15b_mean",
+    "t7_esm2_15b_3site":    "esm15b_3site",
+    "t7_esmc":              "esmc600m_3site",
+    "t7_esmc_mean":         "esmc600m_mean",
+    "tev_onehot":           "onehot",
+    "tev_esm2_15b":         "esm15b_mean",
+    "tev_esm2_15b_4site":   "esm15b_4site",
+    "tev_esmc":             "esmc600m_4site",
+    "tev_esmc_mean":        "esmc600m_mean",
+    "gb1_esm2_15b_4site":   "esm15b_4site",
+    "gb1_esmc_mean":        "esmc600m_mean",
+    "trpb_esm2_15b_4site":  "esm15b_4site",
+    "trpb_esmc_mean":       "esmc600m_mean",
 }
 
 # Maps method → (model_tag, acquisition_tag) used in output filenames
@@ -329,6 +391,8 @@ def load_landscape(landscape: str) -> tuple:
     else:
         emb_path = os.path.join(ROOT, cfg["embeddings"])
         emb = np.load(emb_path) if emb_path.endswith(".npy") else np.load(emb_path)["embeddings"]
+        if emb.dtype == np.float16:
+            emb = emb.astype(np.float32)
     assert len(emb) == len(fitness)
     return emb, fitness
 

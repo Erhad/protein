@@ -1,5 +1,5 @@
 """
-Merge per-rank ESM2-15B chunk files into final (N, 5120) float16 array.
+Merge per-rank ESM2-15B chunk files into final arrays.
 Run after all workers in launch_esm2_15b.sh complete.
 
 Usage:
@@ -12,31 +12,37 @@ from glob import glob
 
 CHUNK_DIR = "/workspace/embeddings"
 
-LANDSCAPES = [
-    {"name": "gb1",  "n": 149361, "out": "/workspace/protein/v1/data/gb1/embeddings_esm2_15b_meanpool.npy"},
-    {"name": "trpb", "n": 160000, "out": "/workspace/protein/v1/data/trpb/embeddings_esm2_15b_meanpool.npy"},
+JOBS = [
+    {"key": "gb1_nsite",    "n": 149361, "out": "/workspace/protein/v1/data/gb1/embeddings_esm2_15b_4site.npy"},
+    {"key": "trpb_nsite",   "n": 160000, "out": "/workspace/protein/v1/data/trpb/embeddings_esm2_15b_4site.npy"},
+    {"key": "tev_meanpool", "n": 159132, "out": "/workspace/protein/v1/data/tev/embeddings_esm2_15b_meanpool.npy"},
+    {"key": "tev_nsite",    "n": 159132, "out": "/workspace/protein/v1/data/tev/embeddings_esm2_15b_4site.npy"},
+    {"key": "t7_meanpool",  "n": 6725,   "out": "/workspace/protein/v1/data/t7/embeddings_esm2_15b_meanpool.npy"},
+    {"key": "t7_nsite",     "n": 6725,   "out": "/workspace/protein/v1/data/t7/embeddings_esm2_15b_3site.npy"},
 ]
 
-for lc in LANDSCAPES:
-    name   = lc["name"]
-    chunks = sorted(glob(os.path.join(CHUNK_DIR, f"{name}_15b_chunk*.npz")))
+for job in JOBS:
+    key    = job["key"]
+    chunks = sorted(glob(os.path.join(CHUNK_DIR, f"{key}_chunk*.npz")))
     if not chunks:
-        print(f"\n{name}: no chunks found, skipping.")
+        print(f"\n{key}: no chunks found, skipping.")
         continue
 
-    print(f"\n=== {name}: {len(chunks)} chunks ===")
+    print(f"\n=== {key}: {len(chunks)} chunks ===")
     first = np.load(chunks[0])
     dim   = first["embeddings"].shape[1]
-    print(f"  dim={dim}")
+    dtype = first["embeddings"].dtype
+    print(f"  dim={dim}  dtype={dtype}")
 
-    out = np.zeros((lc["n"], dim), dtype=np.float16)
+    out = np.zeros((job["n"], dim), dtype=dtype)
     for path in chunks:
         data = np.load(path)
         lo, hi = int(data["lo"]), int(data["hi"])
         print(f"  {os.path.basename(path)}  [{lo}:{hi}]  shape={data['embeddings'].shape}")
         out[lo:hi] = data["embeddings"]
 
-    os.makedirs(os.path.dirname(lc["out"]), exist_ok=True)
-    np.save(lc["out"], out)
-    print(f"  Saved: {lc['out']}  ({os.path.getsize(lc['out'])/1e9:.2f} GB)")
-    print(f"  Send:  runpodctl send {lc['out']}")
+    os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
+    np.save(job["out"], out)
+    size_gb = os.path.getsize(job["out"]) / 1e9
+    print(f"  Saved: {job['out']}  ({size_gb:.2f} GB)")
+    print(f"  Send:  runpodctl send {job['out']}")

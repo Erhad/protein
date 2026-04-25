@@ -1,34 +1,100 @@
 """
-RunPod multi-GPU script: compute ESMc-600M embeddings for GB1 and TrpB.
+RunPod multi-GPU: compute ESMc-600M embeddings (meanpool and N-site) for all landscapes.
 
-Each process handles one GPU + one slice of sequences (data parallelism).
-Model is tiny (~1.2GB) so all 4 GPUs load independently.
+Model is ~1.2GB — all GPUs load independently.
 
-Usage (run all 4 in parallel):
-    pip install esm datasets
-    python runpod_esmc600m.py --rank 0 --world 4 &
-    python runpod_esmc600m.py --rank 1 --world 4 &
-    python runpod_esmc600m.py --rank 2 --world 4 &
-    python runpod_esmc600m.py --rank 3 --world 4 &
+Usage (via launch_esmc600m.sh):
+    python precompute/runpod_esmc600m.py --rank 0 --world 4 --only gb1_meanpool tev_nsite
+    python precompute/runpod_esmc600m.py --rank 0 --world 4          # all jobs
 
-Or use the launch script:
-    bash launch_esmc600m.sh
-
-Output chunks (merged later with merge_embeddings.py):
-    /workspace/embeddings/gb1_chunk<rank>.npy
-    /workspace/embeddings/trpb_chunk<rank>.npy
+Chunk outputs (merged by merge_esmc600m.py):
+    /workspace/embeddings/{key}_esmc_chunk{rank:02d}.npz
 """
 
-import os, time, argparse
+import argparse
+import os
+import time
+
 import numpy as np
 import torch
-from datasets import load_dataset
 from esm.models.esmc import ESMC
-from esm.sdk.api import ESMProtein, LogitsConfig
+from esm.sdk.api import ESMProtein
 
+# ── Job definitions ────────────────────────────────────────────────────────────
+JOBS = [
+    {
+        "key":     "gb1_meanpool",
+        "csv":     "/workspace/protein/v1/data/gb1/gb1_fitness.csv",
+        "hf":      None,
+        "seq_col": "protein",
+        "mode":    "meanpool",
+        "sites":   None,
+        "n":       149361,
+        "out":     "/workspace/protein/v1/data/gb1/embeddings_esmc600m_meanpool.npy",
+        "batch":   128,
+    },
+    {
+        "key":     "trpb_meanpool",
+        "csv":     None,
+        "hf":      "SaProtHub/Dataset-TrpB_fitness_landsacpe",
+        "seq_col": "protein",
+        "mode":    "meanpool",
+        "sites":   None,
+        "n":       160000,
+        "out":     "/workspace/protein/v1/data/trpb/embeddings_esmc600m_meanpool.npy",
+        "batch":   128,
+    },
+    {
+        "key":     "tev_meanpool",
+        "csv":     "/workspace/protein/v1/data/tev/tev_fitness.csv",
+        "hf":      None,
+        "seq_col": "protein",
+        "mode":    "meanpool",
+        "sites":   None,
+        "n":       159132,
+        "out":     "/workspace/protein/v1/data/tev/embeddings_esmc600m_meanpool.npy",
+        "batch":   128,
+    },
+    {
+        "key":     "tev_nsite",
+        "csv":     "/workspace/protein/v1/data/tev/tev_fitness.csv",
+        "hf":      None,
+        "seq_col": "protein",
+        "mode":    "nsite",
+        "sites":   [145, 147, 166, 169],
+        "n":       159132,
+        "out":     "/workspace/protein/v1/data/tev/embeddings_esmc600m_4site.npy",
+        "batch":   128,
+    },
+    {
+        "key":     "t7_meanpool",
+        "csv":     "/workspace/protein/v1/data/t7/t7_fitness.csv",
+        "hf":      None,
+        "seq_col": "protein",
+        "mode":    "meanpool",
+        "sites":   None,
+        "n":       6725,
+        "out":     "/workspace/protein/v1/data/t7/embeddings_esmc600m_meanpool.npy",
+        "batch":   16,  # length-883 sequences
+    },
+    {
+        "key":     "t7_nsite",
+        "csv":     "/workspace/protein/v1/data/t7/t7_fitness.csv",
+        "hf":      None,
+        "seq_col": "protein",
+        "mode":    "nsite",
+        "sites":   [747, 755, 757],
+        "n":       6725,
+        "out":     "/workspace/protein/v1/data/t7/embeddings_esmc600m_3site.npy",
+        "batch":   16,
+    },
+]
+
+# ── Setup ──────────────────────────────────────────────────────────────────────
 parser = argparse.ArgumentParser()
 parser.add_argument("--rank",  type=int, default=0)
 parser.add_argument("--world", type=int, default=4)
+parser.add_argument("--only",  nargs="+", default=None)
 args = parser.parse_args()
 
 RANK  = args.rank
@@ -41,100 +107,136 @@ OUT_DIR = "/workspace/embeddings"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 print(f"[rank {RANK}/{WORLD}] GPU={gpu_id} ({DEVICE})", flush=True)
-print(f"Loading ESMc-600M...", flush=True)
+print("Loading ESMc-600M ...", flush=True)
 t0 = time.time()
 model = ESMC.from_pretrained("esmc_600m").to(DEVICE)
 model.eval()
 print(f"Loaded in {time.time()-t0:.1f}s", flush=True)
 
+# Detect hidden dim from a dummy forward pass
+with torch.no_grad():
+    _pt  = model.encode(ESMProtein(sequence="ACDE"))
+    _out = model.forward(sequence_tokens=_pt.sequence.unsqueeze(0).to(DEVICE))
+    HIDDEN_DIM = _out.embeddings.shape[-1]
+print(f"ESMc hidden_dim={HIDDEN_DIM}", flush=True)
 
-BATCH = 128  # sequences per GPU forward pass
 
-def embed_4site(sequences: list, sites: list, rank: int) -> np.ndarray:
-    # Detect hidden dim via single sequence
-    with torch.no_grad():
-        pt  = model.encode(ESMProtein(sequence=sequences[0]))
-        out = model.logits(pt, LogitsConfig(return_embeddings=True))
-        hidden_dim = out.embeddings.shape[-1]
+def _encode_batch(sequences: list):
+    """Encode sequences to token tensors (same length required for stack)."""
+    tokens = [model.encode(ESMProtein(sequence=s)).sequence for s in sequences]
+    lengths = [t.shape[0] for t in tokens]
+    if len(set(lengths)) == 1:
+        return torch.stack(tokens).to(DEVICE), True
+    return tokens, False  # variable length — process individually
 
-    print(f"  hidden_dim={hidden_dim}  4site_dim={len(sites)*hidden_dim}  batch={BATCH}", flush=True)
 
-    n   = len(sequences)
-    dim = len(sites) * hidden_dim
-    result = np.zeros((n, dim), dtype=np.float32)
+def embed_meanpool(sequences: list, rank: int, batch: int) -> np.ndarray:
+    n      = len(sequences)
+    result = np.zeros((n, HIDDEN_DIM), dtype=np.float32)
+    t0     = time.time()
 
-    t0 = time.time()
-    for start in range(0, n, BATCH):
-        batch_seqs = sequences[start : start + BATCH]
+    for start in range(0, n, batch):
+        batch_seqs = sequences[start : start + batch]
+        tokens, same_len = _encode_batch(batch_seqs)
 
-        encoded = [model.encode(ESMProtein(sequence=s)).sequence for s in batch_seqs]
-
-        # Batch only if all same length, else process individually
-        lengths = [t.shape[0] for t in encoded]
-        if len(set(lengths)) == 1:
-            tokens = torch.stack(encoded).to(DEVICE)
+        if same_len:
             with torch.no_grad():
                 out = model.forward(sequence_tokens=tokens)
-                emb = out.embeddings.float()
-            for j in range(len(batch_seqs)):
-                result[start + j] = torch.cat([emb[j, s + 1] for s in sites]).cpu().numpy()
+            emb = out.embeddings.float()  # (B, L+2, dim)
+            # positions 1..-1 are residues; 0=BOS, -1=EOS
+            pooled = emb[:, 1:-1, :].mean(dim=1).cpu().numpy()
+            result[start : start + len(batch_seqs)] = pooled
         else:
-            for j, (seq, tok) in enumerate(zip(batch_seqs, encoded)):
+            for j, tok in enumerate(tokens):
                 with torch.no_grad():
                     out = model.forward(sequence_tokens=tok.unsqueeze(0).to(DEVICE))
-                    emb = out.embeddings[0].float()
-                result[start + j] = torch.cat([emb[s + 1] for s in sites]).cpu().numpy()
+                emb = out.embeddings[0].float()  # (L+2, dim)
+                result[start + j] = emb[1:-1, :].mean(dim=0).cpu().numpy()
 
-        if start % 5000 == 0 and start > 0:
+        if start % (batch * 20) == 0 and start > 0:
             elapsed = time.time() - t0
-            rate    = (start + BATCH) / elapsed
-            eta     = (n - start) / rate / 60
-            print(f"  [rank {rank}] {min(start+BATCH,n):>7,}/{n:,}  {rate:.1f} seq/s  ETA {eta:.0f}min", flush=True)
+            rate    = start / elapsed
+            eta     = (n - start) / rate / 60 if rate > 0 else 0
+            print(f"  [rank {rank}] {min(start+batch,n):>7,}/{n:,}  "
+                  f"{rate:.1f} seq/s  ETA {eta:.0f}min", flush=True)
 
     return result
 
 
-LANDSCAPES = [
-    {
-        "name":  "gb1",
-        "hf":    "SaProtHub/Dataset-GB1-fitness",
-        "sites": [38, 39, 40, 53],
-        "n":     149361,
-    },
-    {
-        "name":  "trpb",
-        "hf":    "SaProtHub/Dataset-TrpB_fitness_landsacpe",
-        "sites": [182, 183, 226, 227],
-        "n":     160000,
-    },
-]
+def embed_nsite(sequences: list, sites: list, rank: int, batch: int) -> np.ndarray:
+    dim    = len(sites) * HIDDEN_DIM
+    n      = len(sequences)
+    result = np.zeros((n, dim), dtype=np.float32)
+    t0     = time.time()
 
-for lc in LANDSCAPES:
-    name  = lc["name"]
-    out_path = f"{OUT_DIR}/{name}_chunk{RANK:02d}.npy"
+    for start in range(0, n, batch):
+        batch_seqs = sequences[start : start + batch]
+        tokens, same_len = _encode_batch(batch_seqs)
 
-    if os.path.exists(out_path):
-        print(f"\n[rank {RANK}] {name} chunk already exists, skipping.", flush=True)
+        if same_len:
+            with torch.no_grad():
+                out = model.forward(sequence_tokens=tokens)
+            emb = out.embeddings.float()  # (B, L+2, dim)
+            for j in range(len(batch_seqs)):
+                result[start + j] = torch.cat([emb[j, s + 1] for s in sites]).cpu().numpy()
+        else:
+            for j, tok in enumerate(tokens):
+                with torch.no_grad():
+                    out = model.forward(sequence_tokens=tok.unsqueeze(0).to(DEVICE))
+                emb = out.embeddings[0].float()
+                result[start + j] = torch.cat([emb[s + 1] for s in sites]).cpu().numpy()
+
+        if start % (batch * 20) == 0 and start > 0:
+            elapsed = time.time() - t0
+            rate    = start / elapsed
+            eta     = (n - start) / rate / 60 if rate > 0 else 0
+            print(f"  [rank {rank}] {min(start+batch,n):>7,}/{n:,}  "
+                  f"{rate:.1f} seq/s  ETA {eta:.0f}min", flush=True)
+
+    return result
+
+
+# ── Load data helper ───────────────────────────────────────────────────────────
+import pandas as pd
+from datasets import load_dataset
+
+def load_sequences(job: dict) -> list:
+    if job["csv"]:
+        df = pd.read_csv(job["csv"])
+        return df[job["seq_col"]].str.strip().str.replace("*", "", regex=False).tolist()
+    ds = load_dataset(job["hf"], split="train")
+    return [s.replace("*", "").strip() for s in ds[job["seq_col"]]]
+
+
+# ── Main loop ──────────────────────────────────────────────────────────────────
+for job in JOBS:
+    key = job["key"]
+    if args.only and key not in args.only:
         continue
 
-    print(f"\n[rank {RANK}] === {name.upper()} ===", flush=True)
-    ds   = load_dataset(lc["hf"], split="train")
-    seqs = [s.replace("*", "").strip() for s in ds["protein"]]
+    chunk_path = f"{OUT_DIR}/{key}_esmc_chunk{RANK:02d}.npz"
 
-    # Slice for this rank
-    n_total = len(seqs)
+    if os.path.exists(chunk_path):
+        print(f"\n[rank {RANK}] {key}: chunk exists, skipping.", flush=True)
+        continue
+
+    print(f"\n[rank {RANK}] === {key} ({job['mode']}) ===", flush=True)
+
+    all_seqs = load_sequences(job)
+    n_total  = len(all_seqs)
     lo = (n_total * RANK) // WORLD
     hi = (n_total * (RANK + 1)) // WORLD
-    my_seqs = seqs[lo:hi]
-    print(f"  slice [{lo}:{hi}]  ({len(my_seqs)} sequences)", flush=True)
+    my_seqs = all_seqs[lo:hi]
+    print(f"  slice [{lo}:{hi}]  ({len(my_seqs):,} sequences)", flush=True)
 
-    t0 = time.time()
-    emb = embed_4site(my_seqs, lc["sites"], RANK)
-    print(f"  Done in {time.time()-t0:.0f}s  shape={emb.shape}", flush=True)
+    t_start = time.time()
+    if job["mode"] == "meanpool":
+        emb = embed_meanpool(my_seqs, RANK, job["batch"])
+    else:
+        emb = embed_nsite(my_seqs, job["sites"], RANK, job["batch"])
 
-    # Save with lo/hi metadata via npz
-    np.savez(out_path.replace(".npy", ".npz"), embeddings=emb, lo=lo, hi=hi)
-    print(f"  Saved: {out_path.replace('.npy','.npz')}", flush=True)
-    del emb
+    print(f"  Done in {time.time()-t_start:.0f}s  shape={emb.shape}", flush=True)
+    np.savez(chunk_path, embeddings=emb, lo=lo, hi=hi)
+    print(f"  Saved: {chunk_path}", flush=True)
 
 print(f"\n[rank {RANK}] All done!", flush=True)

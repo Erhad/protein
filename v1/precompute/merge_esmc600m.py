@@ -1,0 +1,48 @@
+"""
+Merge per-rank ESMc-600M chunk files into final arrays.
+Run after all workers in launch_esmc600m.sh complete.
+
+Usage:
+    python precompute/merge_esmc600m.py
+"""
+
+import os
+import numpy as np
+from glob import glob
+
+CHUNK_DIR = "/workspace/embeddings"
+
+JOBS = [
+    {"key": "gb1_meanpool",  "n": 149361, "out": "/workspace/protein/v1/data/gb1/embeddings_esmc600m_meanpool.npy"},
+    {"key": "trpb_meanpool", "n": 160000, "out": "/workspace/protein/v1/data/trpb/embeddings_esmc600m_meanpool.npy"},
+    {"key": "tev_meanpool",  "n": 159132, "out": "/workspace/protein/v1/data/tev/embeddings_esmc600m_meanpool.npy"},
+    {"key": "tev_nsite",     "n": 159132, "out": "/workspace/protein/v1/data/tev/embeddings_esmc600m_4site.npy"},
+    {"key": "t7_meanpool",   "n": 6725,   "out": "/workspace/protein/v1/data/t7/embeddings_esmc600m_meanpool.npy"},
+    {"key": "t7_nsite",      "n": 6725,   "out": "/workspace/protein/v1/data/t7/embeddings_esmc600m_3site.npy"},
+]
+
+for job in JOBS:
+    key    = job["key"]
+    chunks = sorted(glob(os.path.join(CHUNK_DIR, f"{key}_esmc_chunk*.npz")))
+    if not chunks:
+        print(f"\n{key}: no chunks found, skipping.")
+        continue
+
+    print(f"\n=== {key}: {len(chunks)} chunks ===")
+    first = np.load(chunks[0])
+    dim   = first["embeddings"].shape[1]
+    dtype = first["embeddings"].dtype
+    print(f"  dim={dim}  dtype={dtype}")
+
+    out = np.zeros((job["n"], dim), dtype=dtype)
+    for path in chunks:
+        data = np.load(path)
+        lo, hi = int(data["lo"]), int(data["hi"])
+        print(f"  {os.path.basename(path)}  [{lo}:{hi}]  shape={data['embeddings'].shape}")
+        out[lo:hi] = data["embeddings"]
+
+    os.makedirs(os.path.dirname(job["out"]), exist_ok=True)
+    np.save(job["out"], out)
+    size_gb = os.path.getsize(job["out"]) / 1e9
+    print(f"  Saved: {job['out']}  ({size_gb:.2f} GB)")
+    print(f"  Send:  runpodctl send {job['out']}")
