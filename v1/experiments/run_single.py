@@ -34,6 +34,70 @@ ROOT        = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INITIAL_N   = 96
 TOTAL_BUDGET = 480
 
+# ── Calibration tracking constants ────────────────────────────────────────────
+CAL_K_VALS  = [1, 5, 10, 20, 50, 100]
+CAL_N_DRAWS = 50
+CAL_ALPHAS  = np.linspace(0.05, 0.95, 19)
+
+
+def _compute_calibration_round(all_preds, y_pool_norm, k_vals, n_draws, rng):
+    """Calibration stats on one round's pool.
+
+    all_preds   : (n_members, n_pool) float32 — member/tree predictions (normalized scale)
+    y_pool_norm : (n_pool,) float32           — true labels (same normalized scale)
+
+    RF (n_members=100): k-sweep via sub-ensemble draws (k-averaged function sample).
+    DNN (n_members≤20): k-sweep is degenerate; use direct ensemble mean/std instead,
+                        stored under k=n_members.  Only k=1 (single-member sigma) is
+                        computed via sampling to give a per-member spread estimate.
+    """
+    n_members, n_pool = all_preds.shape
+    lo_qs = (1 - CAL_ALPHAS) / 2
+    hi_qs = (1 + CAL_ALPHAS) / 2
+    result = {}
+
+    def _z_cov_sigma(mu, sigma, draws):
+        safe   = np.where(sigma > 0, sigma, 1e-10)
+        z      = (mu - y_pool_norm) / safe
+        qs     = np.quantile(draws, np.concatenate([lo_qs, hi_qs]), axis=1)
+        lo_all = qs[:len(CAL_ALPHAS)]
+        hi_all = qs[len(CAL_ALPHAS):]
+        cov    = np.mean(
+            (y_pool_norm[None, :] >= lo_all) & (y_pool_norm[None, :] <= hi_all), axis=1
+        ).astype(np.float32)
+        return z.astype(np.float32), sigma.astype(np.float32), cov
+
+    if n_members > 20:
+        # ── RF path: full k-sweep via sub-ensemble draws ──────────────────────
+        for k in k_vals:
+            k_use = min(k, n_members)
+            draws = np.zeros((n_pool, n_draws), dtype=np.float32)
+            for d in range(n_draws):
+                idx = rng.choice(n_members, size=k_use, replace=False)
+                draws[:, d] = all_preds[idx].mean(axis=0)
+            mu    = draws.mean(axis=1)
+            sigma = draws.std(axis=1)
+            z, sig, cov = _z_cov_sigma(mu, sigma, draws)
+            result[f"k{k}_z"]        = z
+            result[f"k{k}_sigma"]    = sig
+            result[f"k{k}_coverage"] = cov
+    else:
+        # ── DNN path: direct ensemble statistics (k-sweep is degenerate) ─────
+        # k=1: sigma = spread of individual member predictions (n_draws picks from members)
+        draws_k1 = np.zeros((n_pool, n_draws), dtype=np.float32)
+        for d in range(n_draws):
+            idx = rng.choice(n_members, size=1, replace=True)
+            draws_k1[:, d] = all_preds[idx[0]]
+        mu_k1    = draws_k1.mean(axis=1)
+        sigma_k1 = draws_k1.std(axis=1)
+        z, sig, cov = _z_cov_sigma(mu_k1, sigma_k1, draws_k1)
+        result["k1_z"]        = z
+        result["k1_sigma"]    = sig
+        result["k1_coverage"] = cov
+        result["n_members"]   = np.int32(n_members)
+
+    return result
+
 LANDSCAPE_CFG = {
     "gfp": {
         "fitness_csv": "data/gfp/sequences_scores.csv",
@@ -136,6 +200,47 @@ LANDSCAPE_CFG = {
         "fitness_col": "label",
         "embeddings":  "data/t7/embeddings_esm2_15b_3site.npy",
     },
+    # ── Site meanpool: mean over N mutation-site token embeddings ────────────
+    "gb1_esmc_sitemean": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esmc600m_4site_mean.npy",
+    },
+    "gb1_esm2_15b_sitemean": {
+        "fitness_csv": "data/gb1/gb1_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/gb1/embeddings_esm2_15b_4site_mean.npy",
+    },
+    "trpb_esmc_sitemean": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/trpb/embeddings_esmc600m_4site_mean.npy",
+    },
+    "trpb_esm2_15b_sitemean": {
+        "fitness_csv": "data/trpb/trpb_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/trpb/embeddings_esm2_15b_4site_mean.npy",
+    },
+    "tev_esmc_sitemean": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/tev/embeddings_esmc600m_4site_mean.npy",
+    },
+    "tev_esm2_15b_sitemean": {
+        "fitness_csv": "data/tev/tev_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/tev/embeddings_esm2_15b_4site_mean.npy",
+    },
+    "t7_esmc_sitemean": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/t7/embeddings_esmc600m_3site_mean.npy",
+    },
+    "t7_esm2_15b_sitemean": {
+        "fitness_csv": "data/t7/t7_fitness.csv",
+        "fitness_col": "label",
+        "embeddings":  "data/t7/embeddings_esm2_15b_3site_mean.npy",
+    },
     # ── New: ESMc meanpool ────────────────────────────────────────────────────
     "gb1_esmc_mean": {
         "fitness_csv": "data/gb1/gb1_fitness.csv",
@@ -195,9 +300,17 @@ LANDSCAPE_EMB = {
     "tev_esmc":             "esmc600m_4site",
     "tev_esmc_mean":        "esmc600m_mean",
     "gb1_esm2_15b_4site":   "esm15b_4site",
-    "gb1_esmc_mean":        "esmc600m_mean",
-    "trpb_esm2_15b_4site":  "esm15b_4site",
-    "trpb_esmc_mean":       "esmc600m_mean",
+    "gb1_esmc_mean":            "esmc600m_mean",
+    "trpb_esm2_15b_4site":      "esm15b_4site",
+    "trpb_esmc_mean":           "esmc600m_mean",
+    "gb1_esmc_sitemean":        "esmc600m_sitemean",
+    "gb1_esm2_15b_sitemean":    "esm15b_sitemean",
+    "trpb_esmc_sitemean":       "esmc600m_sitemean",
+    "trpb_esm2_15b_sitemean":   "esm15b_sitemean",
+    "tev_esmc_sitemean":        "esmc600m_sitemean",
+    "tev_esm2_15b_sitemean":    "esm15b_sitemean",
+    "t7_esmc_sitemean":         "esmc600m_sitemean",
+    "t7_esm2_15b_sitemean":     "esm15b_sitemean",
 }
 
 # Maps method → (model_tag, acquisition_tag) used in output filenames
@@ -212,6 +325,9 @@ METHOD_MODEL_ACQ = {
     "rf_ts_k50":       ("rfk50",   "ts"),
     "dnn_ts":          ("dnn500",  "ts"),
     "dnn_ts_s":        ("dnn256",  "ts"),
+    "dnn_greedy_s":    ("dnn256",  "greedy"),
+    "dnn_ei_s":        ("dnn256",  "ei"),
+    "dnn_ucb_s":       ("dnn256",  "ucb"),
     "dnn_greedy":      ("dnn500",  "greedy"),
     "dnn_ei":          ("dnn500",  "ei"),
     "dnn_pi":          ("dnn500",  "pi"),
@@ -263,8 +379,22 @@ ZS_CFG = {
     "trpb_onehot":   {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
     "t7_onehot":     {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
     "t7_esm2_15b":   {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
-    "tev_onehot":    {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
-    "tev_esm2_15b":  {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_onehot":          {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_esm2_15b":        {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_esmc":            {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_esmc_mean":       {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_esmc_sitemean":   {"csv": "data/li2024/results/zs_comb/all/TEV.csv",   "sites": _TEV_SITES},
+    "tev_esm2_15b_sitemean": {"csv": "data/li2024/results/zs_comb/all/TEV.csv", "sites": _TEV_SITES},
+    "t7_esmc":             {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
+    "t7_esmc_mean":        {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
+    "t7_esmc_sitemean":    {"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
+    "t7_esm2_15b_sitemean":{"csv": "data/li2024/results/zs_comb/all/T7.csv",    "sites": _T7_SITES},
+    "gb1_esmc_mean":       {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esmc_sitemean":   {"csv": "data/li2024/results/zs_comb/all/GB1.csv",   "sites": _GB1_SITES},
+    "gb1_esm2_15b_sitemean": {"csv": "data/li2024/results/zs_comb/all/GB1.csv", "sites": _GB1_SITES},
+    "trpb_esmc_mean":      {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_esmc_sitemean":  {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
+    "trpb_esm2_15b_sitemean": {"csv": "data/li2024/results/zs_comb/all/TrpB4.csv", "sites": _TRPB_SITES},
 }
 
 ZS_PREDICTORS = ["esm_score", "esmif_score", "ev_score", "ev-esm-esmif_score", "ed_score"]
@@ -283,8 +413,22 @@ WT_AAS = {
     "trpb_onehot":   "VFVS",
     "t7_onehot":     "NRQ",
     "t7_esm2_15b":   "NRQ",
-    "tev_onehot":    "TDHS",
-    "tev_esm2_15b":  "TDHS",
+    "tev_onehot":            "TDHS",
+    "tev_esm2_15b":          "TDHS",
+    "tev_esmc":              "TDHS",
+    "tev_esmc_mean":         "TDHS",
+    "tev_esmc_sitemean":     "TDHS",
+    "tev_esm2_15b_sitemean": "TDHS",
+    "t7_esmc":               "NRQ",
+    "t7_esmc_mean":          "NRQ",
+    "t7_esmc_sitemean":      "NRQ",
+    "t7_esm2_15b_sitemean":  "NRQ",
+    "gb1_esmc_mean":         "VDGV",
+    "gb1_esmc_sitemean":     "VDGV",
+    "gb1_esm2_15b_sitemean": "VDGV",
+    "trpb_esmc_mean":        "VFVS",
+    "trpb_esmc_sitemean":    "VFVS",
+    "trpb_esm2_15b_sitemean":"VFVS",
 }
 
 def load_double_mut_zs_init(landscape: str, n: int, seqs: list, rng: np.random.Generator) -> list:
@@ -451,9 +595,18 @@ def make_method(method: str, seed: int):
     elif method == "dnn_greedy":
         from methods.dnn_ensemble import DNNEnsembleOptimizer
         return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="greedy")
+    elif method == "dnn_greedy_s":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[256, 128], acquisition="greedy", bootstrap_size=0.7)
     elif method == "dnn_ei":
         from methods.dnn_ensemble import DNNEnsembleOptimizer
         return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="ei")
+    elif method == "dnn_ei_s":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[256, 128], acquisition="ei", bootstrap_size=0.7)
+    elif method == "dnn_ucb_s":
+        from methods.dnn_ensemble import DNNEnsembleOptimizer
+        return DNNEnsembleOptimizer(seed=seed, hidden=[256, 128], acquisition="ucb", beta=2.0, bootstrap_size=0.7)
     elif method == "dnn_pi":
         from methods.dnn_ensemble import DNNEnsembleOptimizer
         return DNNEnsembleOptimizer(seed=seed, hidden=[500, 150, 50], acquisition="pi")
@@ -474,7 +627,8 @@ def make_method(method: str, seed: int):
 
 def run(landscape: str, method: str, batch_size: int, seed: int,
         zs_predictor: str = None, cluster_init: bool = False,
-        double_mut_init: bool = False) -> dict:
+        double_mut_init: bool = False,
+        track_calibration: bool = False) -> dict:
     # Check before doing any computation
     run_name = _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, double_mut_init)
     out_path = os.path.join(ROOT, "results", "raw", f"{run_name}.jsonl")
@@ -508,6 +662,8 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
 
     global_max = fitness.max()
     t_total = 0.0
+    cal_rounds = []       # filled when track_calibration=True
+    cal_rng    = np.random.default_rng(seed + 99991)  # independent from main RNG
     while len(labeled_idx) < TOTAL_BUDGET:
         actual_batch = min(batch_size, TOTAL_BUDGET - len(labeled_idx))
 
@@ -522,6 +678,27 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
         pool_sel = opt.select(X_pool, batch_size=actual_batch)
         t_total += time.time() - t0
 
+        # ── Calibration hook (reuses all_preds already computed during TS select)
+        if track_calibration:
+            all_preds = getattr(opt, "_last_all_preds", None)
+            if all_preds is not None:
+                t_cal = time.time()
+                # y for pool in normalized space (consistent with model predictions)
+                y_pool_norm = fitness[remaining_idx] / y_max if y_max > 0 else fitness[remaining_idx]
+                _ts_k  = getattr(opt, "ts_k", None)
+                k_vals = [_ts_k] if _ts_k is not None else CAL_K_VALS
+                round_data = _compute_calibration_round(
+                    all_preds.astype(np.float32),
+                    y_pool_norm.astype(np.float32),
+                    k_vals, CAL_N_DRAWS, cal_rng,
+                )
+                round_data["n_labeled"]    = np.int32(len(labeled_idx))
+                round_data["y_max"]        = np.float32(y_max)
+                round_data["pool_indices"] = np.array(remaining_idx, dtype=np.int32)
+                cal_rounds.append(round_data)
+                print(f"    calibration round {len(cal_rounds)-1} done "
+                      f"({time.time()-t_cal:.1f}s)", flush=True)
+
         selected_global = [remaining_idx[i] for i in pool_sel]
         labeled_idx    += selected_global
         remaining_set   = set(selected_global)
@@ -533,6 +710,21 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
               f"t={t_total:.1f}s", flush=True)
         if current_max >= global_max:
             break
+
+    # ── Save calibration data ─────────────────────────────────────────────────
+    if track_calibration and cal_rounds:
+        cal_dir  = os.path.join(ROOT, "results", "calibration")
+        os.makedirs(cal_dir, exist_ok=True)
+        cal_path = os.path.join(cal_dir, f"{run_name}_seed{seed}.npz")
+        save_dict = {
+            "k_vals": np.array(CAL_K_VALS),
+            "alphas": CAL_ALPHAS,
+        }
+        for r, rd in enumerate(cal_rounds):
+            for key, val in rd.items():
+                save_dict[f"round{r}_{key}"] = val
+        np.savez_compressed(cal_path, **save_dict)
+        print(f"  Calibration saved → {cal_path}", flush=True)
 
     record = {
         "landscape":       landscape,
@@ -556,7 +748,8 @@ if __name__ == "__main__":
                         choices=["evolvepro", "rf_greedy", "rf_ucb",
                                  "rf_ts", "rf_ts_k1", "rf_ts_k5", "rf_ts_k10", "rf_ts_k20",
                                  "boes_ei", "boes_ts", "mutation_stats",
-                                 "dnn_ts", "dnn_ts_s", "dnn_greedy", "dnn_ucb", "alde_dnn"])
+                                 "dnn_ts", "dnn_ts_s", "dnn_greedy", "dnn_greedy_s",
+                                 "dnn_ucb", "dnn_ucb_s", "dnn_ei", "dnn_ei_s", "alde_dnn"])
     parser.add_argument("--batch_size",    required=True, type=int)
     parser.add_argument("--seed",          required=True, type=int)
     parser.add_argument("--zs_predictor",  default=None, choices=ZS_PREDICTORS,
@@ -565,6 +758,9 @@ if __name__ == "__main__":
                         help="Use cluster-stratified initialization (requires precomputed labels)")
     parser.add_argument("--double_mut_init", action="store_true",
                         help="Li et al ds-ev: sample from <=2-mut variants proportional to ev ZS score")
+    parser.add_argument("--track_calibration", action="store_true",
+                        help="Save RF TS calibration stats per round to results/calibration/")
     args = parser.parse_args()
     run(args.landscape, args.method, args.batch_size, args.seed,
-        args.zs_predictor, args.cluster_init, args.double_mut_init)
+        args.zs_predictor, args.cluster_init, args.double_mut_init,
+        track_calibration=args.track_calibration)

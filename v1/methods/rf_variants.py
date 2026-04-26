@@ -75,6 +75,7 @@ class RandomForestOptimizer(Optimizer):
             n_jobs=-1,
         )
         self._fitted = False
+        self._last_all_preds = None   # set by _select_ts; reused for calibration
 
     # ── Training ──────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ class RandomForestOptimizer(Optimizer):
                 delayed(tree.predict)(X_scaled) for tree in estimators
             )
         )  # (n_estimators, n_pool)
+        self._last_all_preds = all_preds   # expose for calibration reuse
 
         # Pre-sample all tree subsets and compute score vectors upfront.
         # (batch_size, k, n_pool) → mean → (batch_size, n_pool); peak ~2GB, fine on modern hardware.

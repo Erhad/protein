@@ -27,9 +27,10 @@ ALL_BATCH_SIZES = [1, 16, 96]
 
 
 def _run_job(args):
-    landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init = args
+    landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init, track_calibration = args
     try:
-        return run(landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init)
+        return run(landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init,
+                   track_calibration=track_calibration)
     except Exception as e:
         print(f"  FAILED {landscape} {method} {batch_size} seed={seed}: {e}")
         return None
@@ -48,10 +49,13 @@ def main():
                         help="Use cluster-stratified initialization")
     parser.add_argument("--double_mut_init", action="store_true",
                         help="Li et al ds-ev: sample from <=2-mut variants proportional to ev ZS score")
+    parser.add_argument("--track_calibration", action="store_true",
+                        help="Save RF/DNN calibration stats per round to results/calibration/")
     args = parser.parse_args()
 
     jobs = [
-        (landscape, args.method, batch_size, seed, args.zs_predictor, args.cluster_init, args.double_mut_init)
+        (landscape, args.method, batch_size, seed,
+         args.zs_predictor, args.cluster_init, args.double_mut_init, args.track_calibration)
         for landscape, batch_size, seed
         in product(args.landscapes, args.batch_sizes, range(args.seeds))
     ]

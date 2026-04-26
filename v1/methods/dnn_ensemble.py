@@ -123,6 +123,7 @@ class DNNEnsembleOptimizer:
 
     def select(self, X_pool: np.ndarray, batch_size: int) -> list[int]:
         preds = self._pool_preds(X_pool)   # (n_pool, n_ensemble)
+        self._last_all_preds = preds.T.astype(np.float32)  # (n_ensemble, n_pool) — calibration reuse
 
         if self.acquisition == "ts":
             # Proper batch TS: resample ensemble member independently for each item.
