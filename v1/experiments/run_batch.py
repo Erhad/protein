@@ -20,17 +20,23 @@ from multiprocessing import Pool, cpu_count
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from experiments.run_single import run
+from experiments.run_single import run, load_landscape
 
 ALL_LANDSCAPES  = ["gfp", "gb1", "trpb", "gb1_esmc", "t7_onehot", "tev_onehot"]
 ALL_BATCH_SIZES = [1, 16, 96]
+
+_worker_preloaded = None
+
+def _init_worker(preloaded):
+    global _worker_preloaded
+    _worker_preloaded = preloaded
 
 
 def _run_job(args):
     landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init, track_calibration = args
     try:
         return run(landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init,
-                   track_calibration=track_calibration)
+                   track_calibration=track_calibration, _preloaded=_worker_preloaded)
     except Exception as e:
         print(f"  FAILED {landscape} {method} {batch_size} seed={seed}: {e}")
         return None
@@ -64,10 +70,20 @@ def main():
     print(f"Landscapes: {args.landscapes}  Batch sizes: {args.batch_sizes}  "
           f"Seeds: 0–{args.seeds-1}")
 
+    # Load landscape data once in the main process; workers inherit via initializer.
+    # For pods we always have a single landscape, so this is one NFS read total.
+    if len(args.landscapes) == 1:
+        print(f"Pre-loading landscape '{args.landscapes[0]}' into RAM...", flush=True)
+        preloaded = load_landscape(args.landscapes[0])
+        print(f"  Loaded: emb={preloaded[0].shape} fitness={preloaded[1].shape}", flush=True)
+    else:
+        preloaded = None  # multi-landscape: fall back to per-call loading
+
     if args.workers == 1:
+        _init_worker(preloaded)
         results = [_run_job(job) for job in jobs]
     else:
-        with Pool(args.workers) as pool:
+        with Pool(args.workers, initializer=_init_worker, initargs=(preloaded,)) as pool:
             results = pool.map(_run_job, jobs)
 
     done = sum(1 for r in results if r)

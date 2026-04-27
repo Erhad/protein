@@ -647,7 +647,8 @@ def make_method(method: str, seed: int):
 def run(landscape: str, method: str, batch_size: int, seed: int,
         zs_predictor: str = None, cluster_init: bool = False,
         double_mut_init: bool = False,
-        track_calibration: bool = False) -> dict:
+        track_calibration: bool = False,
+        _preloaded: tuple = None) -> dict:
     # Check before doing any computation
     run_name = _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, double_mut_init)
     out_path = os.path.join(ROOT, "results", "raw", f"{run_name}.jsonl")
@@ -663,7 +664,7 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
     np.random.seed(seed)
     import pandas as pd
     df = pd.read_csv(os.path.join(ROOT, LANDSCAPE_CFG[landscape]["fitness_csv"]))
-    emb, fitness = load_landscape(landscape)
+    emb, fitness = _preloaded if _preloaded is not None else load_landscape(landscape)
     n_total = len(fitness)
     opt = make_method(method, seed)
     rng = np.random.default_rng(seed)

@@ -45,13 +45,13 @@ def make_jobs():
         # G2: acquisition sweep — ESM2-15B mean, DMZS
         for method in ["dnn_greedy", "dnn_greedy_s", "dnn_ucb", "dnn_ucb_s",
                        "dnn_ei", "dnn_ei_s"]:
-            jobs.append({"name": f"G2-{p}-{method}",
+            jobs.append({"name": f"G2-{p}-esm2_15b-{method}",
                          "landscape": f"{p}_esm2_15b", "method": method,
                          "dmzs": True})
 
         # G3: init ablation — ESMc sitemean, random init only (DMZS covered in G1)
         for method in ["rf_ts_k5", "dnn_ts"]:
-            jobs.append({"name": f"G3-{p}-{method}-random",
+            jobs.append({"name": f"G3-{p}-esmc_sitemean-{method}-random",
                          "landscape": f"{p}_esmc_sitemean", "method": method,
                          "dmzs": False})
 
