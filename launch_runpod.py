@@ -110,14 +110,20 @@ fi
 python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
 python3 -m pip install pandas scikit-learn joblib -q
 
-# Point data/ at the network volume.
-# git clone creates data/ with old unused CSVs; remove it so ln -s works.
+# git clone gives data/ with some fitness CSVs; volume has embeddings + rest.
+# Symlink any file from the volume that does not already exist locally.
 if   [ -d /workspace/protein/v1/data ]; then VOL=/workspace/protein/v1/data
 elif [ -d /workspace/v1/data ];         then VOL=/workspace/v1/data
 else echo "ERROR: data not found on volume" && exit 1; fi
-rm -rf data
-ln -s $VOL data
-echo "data/ → $VOL"
+find "$VOL" -type f | while read src; do
+    rel="${{src#$VOL/}}"
+    dst="data/$rel"
+    if [ ! -f "$dst" ]; then
+        mkdir -p "$(dirname $dst)"
+        ln -sf "$src" "$dst"
+    fi
+done
+echo "Volume files linked from $VOL"
 
 mkdir -p results/raw
 
