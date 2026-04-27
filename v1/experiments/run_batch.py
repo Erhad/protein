@@ -30,6 +30,11 @@ _worker_preloaded = None
 def _init_worker(preloaded):
     global _worker_preloaded
     _worker_preloaded = preloaded
+    try:
+        import torch
+        torch.set_num_threads(1)
+    except ImportError:
+        pass
 
 
 def _run_job(args):
