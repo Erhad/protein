@@ -85,7 +85,8 @@ echo "=== Pod {name} starting ==="
 WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
 git clone -q https://github.com/Erhad/protein.git $WORKDIR
 cd $WORKDIR/v1
-python3 -m pip install torch numpy pandas scikit-learn joblib -q
+python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
+python3 -m pip install numpy pandas scikit-learn joblib -q
 
 # Copy this protein data from volume to local SSD
 PROTEIN=$(echo {landscape} | cut -d_ -f1)
