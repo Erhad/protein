@@ -88,14 +88,11 @@ cd $WORKDIR/v1
 python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
 python3 -m pip install numpy pandas scikit-learn joblib -q
 
-# Copy this protein data from volume to local SSD
-PROTEIN=$(echo {landscape} | cut -d_ -f1)
+# Point data/ directly at the network volume — no copying, one-time NFS read at load
 if   [ -d /workspace/protein/v1/data ]; then VOL=/workspace/protein/v1/data
 elif [ -d /workspace/v1/data ];         then VOL=/workspace/v1/data
 else echo "ERROR: data not found on volume" && exit 1; fi
-mkdir -p data/$PROTEIN data/li2024/results/zs_comb/all
-cp $VOL/$PROTEIN/*.npy data/$PROTEIN/ 2>/dev/null || true
-cp $VOL/li2024/results/zs_comb/all/*.csv data/li2024/results/zs_comb/all/
+ln -sfn $VOL data
 
 mkdir -p results/raw
 
