@@ -73,6 +73,7 @@ CALIBRATION_METHODS = {"rf_ts_k1", "rf_ts_k5", "rf_ts_k10",
 def make_startup_cmd(job, seeds=100, workers=16):
     landscape = job["landscape"]
     method    = job["method"]
+    dmzs_arg  = "True" if job["dmzs"] else "False"
     dmzs_flag = "--double_mut_init" if job["dmzs"] else ""
     cal_flag  = "--track_calibration" if method in CALIBRATION_METHODS else ""
     name      = job["name"]
@@ -85,8 +86,29 @@ echo "=== Pod {name} starting ==="
 WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
 git clone -q https://github.com/Erhad/protein.git $WORKDIR
 cd $WORKDIR/v1
+
+# Install numpy first (needed by run_single.py import for completeness check)
+python3 -m pip install numpy -q
+
+# Completeness check — exit early if result file already has enough seeds
+RUN_NAME=$(python3 -c "
+import sys; sys.path.insert(0, '.')
+from experiments.run_single import _make_run_name
+print(_make_run_name('{landscape}', '{method}', 96, None, False, {dmzs_arg}))
+")
+RESULT_FILE="/workspace/results/raw/${{RUN_NAME}}.jsonl"
+if [ -f "$RESULT_FILE" ]; then
+    LINES=$(wc -l < "$RESULT_FILE")
+    if [ "$LINES" -ge {seeds} ]; then
+        echo "=== {name} already complete ($LINES lines in $RESULT_FILE) — exiting ==="
+        runpodctl remove pod $RUNPOD_POD_ID
+        exit 0
+    fi
+fi
+
+# Install the rest (torch is 180 MB, defer until we know we need to run)
 python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
-python3 -m pip install numpy pandas scikit-learn joblib -q
+python3 -m pip install pandas scikit-learn joblib -q
 
 # Point data/ directly at the network volume — no copying, one-time NFS read at load
 if   [ -d /workspace/protein/v1/data ]; then VOL=/workspace/protein/v1/data
@@ -119,6 +141,15 @@ runpodctl remove pod $RUNPOD_POD_ID
 
 
 GRAPHQL_URL = "https://api.runpod.io/graphql"
+
+
+def get_running_pod_names(api_key):
+    query = "{ myself { pods { name } } }"
+    resp = requests.post(GRAPHQL_URL,
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={"query": query}, timeout=15)
+    pods = resp.json().get("data", {}).get("myself", {}).get("pods", [])
+    return {p["name"] for p in pods}
 
 
 def deploy_cpu_pod(api_key, name, cmd, volume_id, instance_id="cpu3g-2-16",
@@ -177,8 +208,17 @@ def main():
             print(f"  {j['name']:55s}  {j['method']:20s}  {'DMZS' if j['dmzs'] else 'random'}")
         return
 
-    spawned, failed = [], []
+    print("Fetching currently running pods...")
+    running_names = get_running_pod_names(api_key)
+    if running_names:
+        print(f"  Already running: {sorted(running_names)}")
+
+    spawned, failed, skipped = [], [], []
     for job in jobs:
+        if job["name"] in running_names:
+            print(f"  SKIP {job['name']} — already running")
+            skipped.append(job["name"])
+            continue
         cmd = make_startup_cmd(job, seeds=args.seeds, workers=args.workers)
         try:
             pod = deploy_cpu_pod(api_key, job["name"], cmd, args.volume_id,
@@ -186,12 +226,14 @@ def main():
             pod_id = pod.get("id", "?")
             print(f"  Spawned {job['name']} → pod {pod_id}")
             spawned.append((job["name"], pod_id))
+            running_names.add(job["name"])
         except Exception as e:
             print(f"  FAILED {job['name']}: {e}")
             failed.append(job["name"])
         time.sleep(0.3)
 
-    print(f"\nSpawned {len(spawned)}/{len(jobs)} pods.")
+    print(f"\nSpawned {len(spawned)}/{len(jobs)} pods."
+          f"  Skipped {len(skipped)} already running.")
     if failed:
         print(f"Failed ({len(failed)}): {failed[:5]}")
     print("Results will appear in /workspace/results/raw/ on the volume.")
