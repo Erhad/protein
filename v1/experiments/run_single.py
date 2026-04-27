@@ -722,7 +722,9 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
         }
         for r, rd in enumerate(cal_rounds):
             for key, val in rd.items():
-                save_dict[f"round{r}_{key}"] = val
+                # keep only coverage (19 floats) and scalar metadata; skip per-variant arrays
+                if key.endswith("_coverage") or key in ("n_labeled", "y_max", "n_members"):
+                    save_dict[f"round{r}_{key}"] = val
         np.savez_compressed(cal_path, **save_dict)
         print(f"  Calibration saved → {cal_path}", flush=True)
 
