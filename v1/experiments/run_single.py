@@ -41,34 +41,62 @@ CAL_ALPHAS  = np.linspace(0.05, 0.95, 19)
 
 
 def _compute_calibration_round(all_preds, y_pool_norm, k_vals, n_draws, rng):
-    """Calibration stats on one round's pool.
+    """Aggregate calibration stats on one round's pool (no per-variant arrays).
 
-    all_preds   : (n_members, n_pool) float32 — member/tree predictions (normalized scale)
-    y_pool_norm : (n_pool,) float32           — true labels (same normalized scale)
+    all_preds   : (n_members, n_pool) float32 — member/tree predictions (normalised scale)
+    y_pool_norm : (n_pool,) float32           — true labels (same normalised scale)
 
-    RF (n_members=100): k-sweep via sub-ensemble draws (k-averaged function sample).
-    DNN (n_members≤20): k-sweep is degenerate; use direct ensemble mean/std instead,
-                        stored under k=n_members.  Only k=1 (single-member sigma) is
-                        computed via sampling to give a per-member spread estimate.
+    RF  (n_members > 20): k-sweep via sub-ensemble draws; empirical quantile coverage.
+    DNN (n_members ≤ 20): direct ensemble mean/std; Gaussian parametric coverage
+                          (empirical quantiles unreliable with only 5–10 members).
+
+    Returns scalars / small arrays only — no per-variant vectors.
+    Metrics follow Greenman et al. (2023) §4.7:
+      coverage   : fraction of pool inside α-CI at each CAL_ALPHA        (19 floats)
+      mean_sigma : mean predicted uncertainty across pool                  (1 float)
+      mean_abs_err: mean |y − μ|                                          (1 float)
+      rho_unc    : Spearman ρ(|y − μ|, σ) — uncertainty rank correlation  (1 float)
+      mean_z     : mean (μ − y)/σ — signed bias check (should be ~0)      (1 float)
     """
+    from scipy import stats as _sp
+
     n_members, n_pool = all_preds.shape
-    lo_qs = (1 - CAL_ALPHAS) / 2
-    hi_qs = (1 + CAL_ALPHAS) / 2
     result = {}
 
-    def _z_cov_sigma(mu, sigma, draws):
-        safe   = np.where(sigma > 0, sigma, 1e-10)
-        z      = (mu - y_pool_norm) / safe
-        qs     = np.quantile(draws, np.concatenate([lo_qs, hi_qs]), axis=1)
-        lo_all = qs[:len(CAL_ALPHAS)]
-        hi_all = qs[len(CAL_ALPHAS):]
-        cov    = np.mean(
-            (y_pool_norm[None, :] >= lo_all) & (y_pool_norm[None, :] <= hi_all), axis=1
+    def _spearman(a, b):
+        ra = np.argsort(np.argsort(a)).astype(np.float64)
+        rb = np.argsort(np.argsort(b)).astype(np.float64)
+        ra -= ra.mean(); rb -= rb.mean()
+        denom = np.linalg.norm(ra) * np.linalg.norm(rb)
+        return float(np.dot(ra, rb) / (denom + 1e-10))
+
+    def _aggregate(mu, sigma, draws=None, gaussian=False):
+        safe    = np.where(sigma > 0, sigma, 1e-10)
+        z       = (mu - y_pool_norm) / safe
+        abs_err = np.abs(y_pool_norm - mu)
+        if gaussian:
+            z_crit = _sp.norm.ppf((1 + CAL_ALPHAS) / 2)          # (19,)
+            lo = mu[None, :] - z_crit[:, None] * safe[None, :]
+            hi = mu[None, :] + z_crit[:, None] * safe[None, :]
+        else:
+            lo_qs  = (1 - CAL_ALPHAS) / 2
+            hi_qs  = (1 + CAL_ALPHAS) / 2
+            qs     = np.quantile(draws, np.concatenate([lo_qs, hi_qs]), axis=1)
+            lo     = qs[:len(CAL_ALPHAS)]
+            hi     = qs[len(CAL_ALPHAS):]
+        cov = np.mean(
+            (y_pool_norm[None, :] >= lo) & (y_pool_norm[None, :] <= hi), axis=1
         ).astype(np.float32)
-        return z.astype(np.float32), sigma.astype(np.float32), cov
+        return {
+            "coverage":     cov,
+            "mean_sigma":   np.float32(sigma.mean()),
+            "mean_abs_err": np.float32(abs_err.mean()),
+            "rho_unc":      np.float32(_spearman(abs_err, sigma)),
+            "mean_z":       np.float32(z.mean()),
+        }
 
     if n_members > 20:
-        # ── RF path: full k-sweep via sub-ensemble draws ──────────────────────
+        # ── RF: k-subensemble draws, empirical coverage ───────────────────────
         for k in k_vals:
             k_use = min(k, n_members)
             draws = np.zeros((n_pool, n_draws), dtype=np.float32)
@@ -77,24 +105,15 @@ def _compute_calibration_round(all_preds, y_pool_norm, k_vals, n_draws, rng):
                 draws[:, d] = all_preds[idx].mean(axis=0)
             mu    = draws.mean(axis=1)
             sigma = draws.std(axis=1)
-            z, sig, cov = _z_cov_sigma(mu, sigma, draws)
-            result[f"k{k}_z"]        = z
-            result[f"k{k}_sigma"]    = sig
-            result[f"k{k}_coverage"] = cov
+            for key, val in _aggregate(mu, sigma, draws=draws).items():
+                result[f"k{k}_{key}"] = val
     else:
-        # ── DNN path: direct ensemble statistics (k-sweep is degenerate) ─────
-        # k=1: sigma = spread of individual member predictions (n_draws picks from members)
-        draws_k1 = np.zeros((n_pool, n_draws), dtype=np.float32)
-        for d in range(n_draws):
-            idx = rng.choice(n_members, size=1, replace=True)
-            draws_k1[:, d] = all_preds[idx[0]]
-        mu_k1    = draws_k1.mean(axis=1)
-        sigma_k1 = draws_k1.std(axis=1)
-        z, sig, cov = _z_cov_sigma(mu_k1, sigma_k1, draws_k1)
-        result["k1_z"]        = z
-        result["k1_sigma"]    = sig
-        result["k1_coverage"] = cov
-        result["n_members"]   = np.int32(n_members)
+        # ── DNN: direct ensemble mean/std, Gaussian coverage ─────────────────
+        mu    = all_preds.mean(axis=0)
+        sigma = all_preds.std(axis=0)
+        for key, val in _aggregate(mu, sigma, gaussian=True).items():
+            result[f"k{n_members}_{key}"] = val
+        result["n_members"] = np.int32(n_members)
 
     return result
 
@@ -720,10 +739,11 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
             "k_vals": np.array(CAL_K_VALS),
             "alphas": CAL_ALPHAS,
         }
+        _AGG_SUFFIXES = ("_coverage", "_mean_sigma", "_mean_abs_err", "_rho_unc", "_mean_z")
         for r, rd in enumerate(cal_rounds):
             for key, val in rd.items():
-                # keep only coverage (19 floats) and scalar metadata; skip per-variant arrays
-                if key.endswith("_coverage") or key in ("n_labeled", "y_max", "n_members"):
+                if any(key.endswith(s) for s in _AGG_SUFFIXES) or \
+                        key in ("n_labeled", "y_max", "n_members"):
                     save_dict[f"round{r}_{key}"] = val
         np.savez_compressed(cal_path, **save_dict)
         print(f"  Calibration saved → {cal_path}", flush=True)
