@@ -198,7 +198,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--volume_id",   required=True)
     parser.add_argument("--seeds",       type=int, default=100)
-    parser.add_argument("--workers",     type=int, default=8)
+    parser.add_argument("--workers",     type=int, default=4)
     parser.add_argument("--instance_id", default="cpu3g-8-32",
                         help="RunPod CPU instance type (e.g. cpu3g-8-32 = 8 vCPU / 32 GB)")
     parser.add_argument("--dry_run",     action="store_true")

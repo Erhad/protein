@@ -554,8 +554,7 @@ def load_landscape(landscape: str) -> tuple:
     else:
         emb_path = os.path.join(ROOT, cfg["embeddings"])
         emb = np.load(emb_path) if emb_path.endswith(".npy") else np.load(emb_path)["embeddings"]
-        if emb.dtype == np.float16:
-            emb = emb.astype(np.float32)
+        # Keep float16 to halve RAM; DNN converts to float32 at tensor creation
     assert len(emb) == len(fitness)
     return emb, fitness
 

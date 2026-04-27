@@ -20,13 +20,13 @@ import torch.nn as nn
 
 
 class _DNN(nn.Module):
-    """Feedforward DNN with LeakyReLU activations, float64 weights."""
+    """Feedforward DNN with LeakyReLU activations, float32 weights."""
 
     def __init__(self, architecture: list[int]):
         super().__init__()
         layers = []
         for i in range(len(architecture) - 1):
-            layers.append(nn.Linear(architecture[i], architecture[i + 1]).double())
+            layers.append(nn.Linear(architecture[i], architecture[i + 1]))
             if i < len(architecture) - 2:
                 layers.append(nn.LeakyReLU())
         self.net = nn.Sequential(*layers)
@@ -104,11 +104,11 @@ class DNNEnsembleOptimizer:
         for i in range(self.n_ensemble):
             if self.bootstrap_size < 1.0:
                 idx = self._rng.choice(n, size=k, replace=False)
-                X_t = torch.tensor(X_train[idx]).double()
-                y_t = torch.tensor(y_train[idx]).double()
+                X_t = torch.tensor(X_train[idx]).float()
+                y_t = torch.tensor(y_train[idx]).float()
             else:
-                X_t = torch.tensor(X_train).double()
-                y_t = torch.tensor(y_train).double()
+                X_t = torch.tensor(X_train).float()
+                y_t = torch.tensor(y_train).float()
             self._models.append(self._train_one(_DNN(arch), X_t, y_t))
         self._round += 1
 
@@ -116,7 +116,7 @@ class DNNEnsembleOptimizer:
 
     def _pool_preds(self, X_pool: np.ndarray) -> np.ndarray:
         """Returns shape (n_pool, n_ensemble) — raw predictions from each model."""
-        X_t = torch.tensor(X_pool).double()
+        X_t = torch.tensor(X_pool).float()
         with torch.no_grad():
             preds = np.stack([m(X_t).numpy() for m in self._models], axis=1)
         return preds  # (n_pool, n_ensemble)
