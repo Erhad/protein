@@ -110,11 +110,14 @@ fi
 python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
 python3 -m pip install pandas scikit-learn joblib -q
 
-# Point data/ directly at the network volume — no copying, one-time NFS read at load
+# Point data/ at the network volume.
+# git clone creates data/ with old unused CSVs; remove it so ln -s works.
 if   [ -d /workspace/protein/v1/data ]; then VOL=/workspace/protein/v1/data
 elif [ -d /workspace/v1/data ];         then VOL=/workspace/v1/data
 else echo "ERROR: data not found on volume" && exit 1; fi
-ln -sfn $VOL data
+rm -rf data
+ln -s $VOL data
+echo "data/ → $VOL"
 
 mkdir -p results/raw
 
