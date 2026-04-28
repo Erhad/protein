@@ -114,7 +114,7 @@ python3 -m pip install pandas scikit-learn joblib -q
 # Symlink each .npy from the volume into the local data/ tree (no copying).
 if   [ -d /workspace/v1/data ]; then VOL=/workspace/v1/data
 else echo "ERROR: /workspace/v1/data not found on volume" && exit 1; fi
-find "$VOL" -name "*.npy" -o -name "*.npz" | while read src; do
+find "$VOL" \( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \) | while read src; do
     rel="${{src#$VOL/}}"
     dst="data/$rel"
     mkdir -p "$(dirname $dst)"
@@ -177,7 +177,6 @@ def deploy_cpu_pod(api_key, name, cmd, volume_id, instance_id="cpu3g-2-16",
         "dockerArgs": cmd,
         "networkVolumeId": volume_id,
         "volumeMountPath": "/workspace",
-        "restartPolicy": "Never",
     }}
     resp = requests.post(
         GRAPHQL_URL,
