@@ -4,11 +4,11 @@ exec > >(tee /workspace/run_trpb.log) 2>&1
 echo "=== trpb pod starting — 30 jobs ==="
 
 WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
-git clone -q https://github.com/Erhad/protein.git $WORKDIR
+git clone -q --depth 1 https://github.com/Erhad/protein.git $WORKDIR
 cd $WORKDIR/v1
 
-python3 -m venv /tmp/venv
-source /tmp/venv/bin/activate
+python3 -m venv /workspace/venv
+source /workspace/venv/bin/activate
 pip install numpy torch --index-url https://download.pytorch.org/whl/cpu pandas scikit-learn joblib -q
 
 VOL=/workspace/v1/data
