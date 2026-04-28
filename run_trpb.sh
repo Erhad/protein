@@ -8,9 +8,9 @@ git clone -q https://github.com/Erhad/protein.git $WORKDIR
 cd $WORKDIR/v1
 
 curl -sS https://bootstrap.pypa.io/get-pip.py | python3
-python3 -m pip install numpy -q
-python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
-python3 -m pip install pandas scikit-learn joblib six python-dateutil -q
+python3 -m pip install numpy -q --break-system-packages
+python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q --break-system-packages
+python3 -m pip install pandas scikit-learn joblib six python-dateutil -q --break-system-packages
 
 VOL=/workspace/v1/data
 find "$VOL" \( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \) | while read src; do
