@@ -1,145 +1,125 @@
 """
-Spawn one RunPod CPU pod per job, all reading from the same network volume.
-Each pod runs its assigned conditions, writes results to the volume, self-terminates.
+Spawn one RunPod CPU pod per protein. Each pod runs all jobs for that protein
+sequentially, writing results to the network volume, then self-terminates.
 
 Usage:
     export RUNPOD_API_KEY=your_key
-    python launch_runpod.py --volume_id <id> --region <region>
+    python launch_runpod.py --volume_id <id>
 
-    # Dry run (print jobs without spawning):
-    python launch_runpod.py --volume_id <id> --region <region> --dry_run
+    # Dry run:
+    python launch_runpod.py --volume_id <id> --dry_run
 """
 
 import argparse, os, time, base64
 import requests
-import runpod
-
-# ── Job definitions ────────────────────────────────────────────────────────────
-# Each job = one pod. pod runs all (landscape, method) combos for its group.
 
 PROTEINS = ["gb1", "trpb", "tev", "t7"]
-
-def make_jobs():
-    jobs = []
-
-    for p in PROTEINS:
-        emb = {
-            "onehot":           f"{p}_onehot",
-            "esmc_mean":        f"{p}_esmc_mean",
-            "esmc_sitemean":    f"{p}_esmc_sitemean",
-            "esm2_15b":         f"{p}_esm2_15b",
-            "esm2_15b_sitemean":f"{p}_esm2_15b_sitemean",
-        }
-
-        # G1: embedding comparison — DMZS, TS, k=5
-        for emb_key, landscape in emb.items():
-            for method in ["rf_ts_k5", "dnn_ts", "dnn_ts_s"]:
-                jobs.append({"name": f"G1-{p}-{emb_key}-{method}",
-                             "landscape": landscape, "method": method,
-                             "dmzs": True})
-        # G1: random baseline (embedding-agnostic, run once per protein)
-        jobs.append({"name": f"G1-{p}-random",
-                     "landscape": f"{p}_onehot", "method": "random",
-                     "dmzs": False})
-
-        # G2: acquisition sweep — ESM2-15B mean, DMZS
-        for method in ["dnn_greedy", "dnn_greedy_s", "dnn_ucb", "dnn_ucb_s",
-                       "dnn_ei", "dnn_ei_s"]:
-            jobs.append({"name": f"G2-{p}-esm2_15b-{method}",
-                         "landscape": f"{p}_esm2_15b", "method": method,
-                         "dmzs": True})
-
-        # G3: init ablation — ESMc sitemean, random init only (DMZS covered in G1)
-        for method in ["rf_ts_k5", "dnn_ts"]:
-            jobs.append({"name": f"G3-{p}-esmc_sitemean-{method}-random",
-                         "landscape": f"{p}_esmc_sitemean", "method": method,
-                         "dmzs": False})
-
-        # G4: k-sweep — DMZS, RF only, onehot + ESM2-15B (k=5 covered in G1)
-        for landscape in [f"{p}_onehot", f"{p}_esm2_15b"]:
-            for method in ["rf_ts_k1", "rf_ts_k10", "evolvepro"]:
-                jobs.append({"name": f"G4-{p}-{landscape.split('_',1)[1]}-{method}",
-                             "landscape": landscape, "method": method,
-                             "dmzs": True})
-
-    return jobs
-
 
 CALIBRATION_METHODS = {"rf_ts_k1", "rf_ts_k5", "rf_ts_k10",
                        "dnn_ts", "dnn_ts_s",
                        "dnn_ucb", "dnn_ucb_s",
                        "dnn_ei", "dnn_ei_s"}
 
-def make_startup_cmd(job, seeds=100, workers=16):
-    landscape = job["landscape"]
-    method    = job["method"]
-    dmzs_arg  = "True" if job["dmzs"] else "False"
-    dmzs_flag = "--double_mut_init" if job["dmzs"] else ""
-    cal_flag  = "--track_calibration" if method in CALIBRATION_METHODS else ""
-    name      = job["name"]
+def protein_subjobs(p):
+    """Return ordered list of (landscape, method, dmzs) for one protein."""
+    emb = {
+        "onehot":            f"{p}_onehot",
+        "esmc_mean":         f"{p}_esmc_mean",
+        "esmc_sitemean":     f"{p}_esmc_sitemean",
+        "esm2_15b":          f"{p}_esm2_15b",
+        "esm2_15b_sitemean": f"{p}_esm2_15b_sitemean",
+    }
+    jobs = []
+    # G1: embedding comparison — DMZS
+    for landscape in emb.values():
+        for method in ["rf_ts_k5", "dnn_ts", "dnn_ts_s"]:
+            jobs.append((landscape, method, True))
+    # G1: random baseline
+    jobs.append((f"{p}_onehot", "random", False))
+    # G2: acquisition sweep — esm2_15b, DMZS
+    for method in ["dnn_greedy", "dnn_greedy_s", "dnn_ucb", "dnn_ucb_s", "dnn_ei", "dnn_ei_s"]:
+        jobs.append((f"{p}_esm2_15b", method, True))
+    # G3: init ablation — esmc_sitemean, random init
+    for method in ["rf_ts_k5", "dnn_ts"]:
+        jobs.append((f"{p}_esmc_sitemean", method, False))
+    # G4: k-sweep — onehot + esm2_15b, DMZS
+    for landscape in [f"{p}_onehot", f"{p}_esm2_15b"]:
+        for method in ["rf_ts_k1", "rf_ts_k10", "evolvepro"]:
+            jobs.append((landscape, method, True))
+    return jobs
 
-    script = f"""#!/bin/bash
-set -e
-echo "=== Pod {name} starting ==="
 
-# Setup — mktemp guarantees a fresh unique dir even if /tmp is shared
-WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
-git clone -q https://github.com/Erhad/protein.git $WORKDIR
-cd $WORKDIR/v1
+def make_startup_cmd(protein, seeds=100, workers=4):
+    subjobs = protein_subjobs(protein)
 
-# Install numpy first (needed by run_single.py import for completeness check)
-python3 -m pip install numpy -q
-
-# Completeness check — exit early if result file already has enough seeds
+    # Build the per-subjob run blocks
+    run_blocks = []
+    for landscape, method, dmzs in subjobs:
+        dmzs_arg  = "True" if dmzs else "False"
+        dmzs_flag = "--double_mut_init" if dmzs else ""
+        cal_flag  = "--track_calibration" if method in CALIBRATION_METHODS else ""
+        run_blocks.append(f"""
+# ── {landscape} / {method} / dmzs={dmzs} ──
 RUN_NAME=$(python3 -c "
 import sys; sys.path.insert(0, '.')
 from experiments.run_single import _make_run_name
 print(_make_run_name('{landscape}', '{method}', 96, None, False, {dmzs_arg}))
 ")
 RESULT_FILE="/workspace/results/raw/${{RUN_NAME}}.jsonl"
-if [ -f "$RESULT_FILE" ]; then
-    LINES=$(wc -l < "$RESULT_FILE")
-    if [ "$LINES" -ge {seeds} ]; then
-        echo "=== {name} already complete ($LINES lines in $RESULT_FILE) — exiting ==="
-        runpodctl remove pod $RUNPOD_POD_ID
-        exit 0
-    fi
-fi
+if [ -f "$RESULT_FILE" ] && [ "$(wc -l < "$RESULT_FILE")" -ge {seeds} ]; then
+    echo "SKIP {landscape} {method} — already complete"
+else
+    echo "RUN  {landscape} {method}"
+    python3 experiments/run_batch.py \\
+        --method {method} \\
+        --landscapes {landscape} \\
+        --batch_sizes 96 \\
+        --seeds {seeds} \\
+        --workers {workers} \\
+        {cal_flag} \\
+        {dmzs_flag}
+    cp results/raw/*.jsonl   /workspace/results/raw/          2>/dev/null || true
+    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+fi""")
 
-# Install the rest (torch is 180 MB, defer until we know we need to run)
+    all_runs = "\n".join(run_blocks)
+
+    script = f"""#!/bin/bash
+set -e
+echo "=== Pod {protein} starting — {len(subjobs)} jobs ==="
+
+WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
+git clone -q https://github.com/Erhad/protein.git $WORKDIR
+cd $WORKDIR/v1
+
+# Install deps
+python3 -m pip install numpy -q
 python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
 python3 -m pip install pandas scikit-learn joblib -q
 
-# Volume has only .npy embedding files; fitness CSVs come from git clone.
-# Symlink each .npy from the volume into the local data/ tree (no copying).
-if   [ -d /workspace/v1/data ]; then VOL=/workspace/v1/data
+# Symlink volume data (embeddings + li2024 ZS CSVs) into local data/ tree
+if [ -d /workspace/v1/data ]; then VOL=/workspace/v1/data
 else echo "ERROR: /workspace/v1/data not found on volume" && exit 1; fi
-find "$VOL" \( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \) | while read src; do
+find "$VOL" \\( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \\) | while read src; do
     rel="${{src#$VOL/}}"
     dst="data/$rel"
     mkdir -p "$(dirname $dst)"
     ln -sf "$src" "$dst"
 done
-echo "Embeddings symlinked from $VOL"
+echo "Data symlinked from $VOL"
 
-mkdir -p results/raw
-
-# Run
-python3 experiments/run_batch.py \\
-    --method {method} \\
-    --landscapes {landscape} \\
-    --batch_sizes 96 \\
-    --seeds {seeds} \\
-    --workers {workers} \\
-    {cal_flag} \\
-    {dmzs_flag}
-
-# Copy results to volume
+mkdir -p results/raw results/calibration
 mkdir -p /workspace/results/raw /workspace/results/calibration
-cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 
-echo "=== Pod {name} done ==="
+# Symlink existing volume results into local results/ so run_single.py's seed-skip logic fires
+find /workspace/results/raw -name "*.jsonl" | while read src; do
+    dst="results/raw/$(basename $src)"
+    ln -sf "$src" "$dst"
+done
+
+{all_runs}
+
+echo "=== Pod {protein} done ==="
 runpodctl remove pod $RUNPOD_POD_ID
 """
     encoded = base64.b64encode(script.encode()).decode()
@@ -158,7 +138,7 @@ def get_running_pod_names(api_key):
     return {p["name"] for p in pods}
 
 
-def deploy_cpu_pod(api_key, name, cmd, volume_id, instance_id="cpu3g-2-16",
+def deploy_cpu_pod(api_key, name, cmd, volume_id, instance_id="cpu3g-8-32",
                    disk_gb=20, image="runpod/base:0.4.0-cuda11.8.0"):
     mutation = """
     mutation DeployCpuPod($input: deployCpuPodInput!) {
@@ -197,21 +177,23 @@ def main():
     parser.add_argument("--seeds",       type=int, default=100)
     parser.add_argument("--workers",     type=int, default=4)
     parser.add_argument("--instance_id", default="cpu3g-8-32",
-                        help="RunPod CPU instance type (e.g. cpu3g-8-32 = 8 vCPU / 32 GB)")
+                        help="RunPod CPU instance type (e.g. cpu3g-8-32, cpu3g-4-16)")
+    parser.add_argument("--proteins",    nargs="+", default=PROTEINS,
+                        help="Subset of proteins to launch (default: all 4)")
     parser.add_argument("--dry_run",     action="store_true")
-    parser.add_argument("--jobs",        nargs="*", help="subset of job names to run")
     args = parser.parse_args()
 
     api_key = os.environ["RUNPOD_API_KEY"]
 
-    jobs = make_jobs()
-    if args.jobs:
-        jobs = [j for j in jobs if j["name"] in args.jobs]
-    print(f"Total jobs: {len(jobs)}")
+    print(f"Proteins: {args.proteins}  Instance: {args.instance_id}  "
+          f"Workers: {args.workers}  Seeds: {args.seeds}")
 
     if args.dry_run:
-        for j in jobs:
-            print(f"  {j['name']:55s}  {j['method']:20s}  {'DMZS' if j['dmzs'] else 'random'}")
+        for p in args.proteins:
+            subjobs = protein_subjobs(p)
+            print(f"\n{p}: {len(subjobs)} jobs")
+            for landscape, method, dmzs in subjobs:
+                print(f"  {landscape:35s} {method:20s} dmzs={dmzs}")
         return
 
     print("Fetching currently running pods...")
@@ -219,30 +201,37 @@ def main():
     if running_names:
         print(f"  Already running: {sorted(running_names)}")
 
-    spawned, failed, skipped = [], [], []
-    for job in jobs:
-        if job["name"] in running_names:
-            print(f"  SKIP {job['name']} — already running")
-            skipped.append(job["name"])
-            continue
-        cmd = make_startup_cmd(job, seeds=args.seeds, workers=args.workers)
-        try:
-            pod = deploy_cpu_pod(api_key, job["name"], cmd, args.volume_id,
-                                 instance_id=args.instance_id)
-            pod_id = pod.get("id", "?")
-            print(f"  Spawned {job['name']} → pod {pod_id}")
-            spawned.append((job["name"], pod_id))
-            running_names.add(job["name"])
-        except Exception as e:
-            print(f"  FAILED {job['name']}: {e}")
-            failed.append(job["name"])
-        time.sleep(0.3)
+    pending = [p for p in args.proteins if f"protein-{p}" not in running_names]
+    cmds    = {p: make_startup_cmd(p, seeds=args.seeds, workers=args.workers)
+               for p in pending}
 
-    print(f"\nSpawned {len(spawned)}/{len(jobs)} pods."
-          f"  Skipped {len(skipped)} already running.")
-    if failed:
-        print(f"Failed ({len(failed)}): {failed[:5]}")
-    print("Results will appear in /workspace/results/raw/ on the volume.")
+    attempt = 0
+    while pending:
+        attempt += 1
+        still_pending = []
+        for protein in pending:
+            pod_name = f"protein-{protein}"
+            try:
+                pod = deploy_cpu_pod(api_key, pod_name, cmds[protein], args.volume_id,
+                                     instance_id=args.instance_id)
+                pod_id = pod.get("id", "?")
+                print(f"  Spawned {pod_name} → pod {pod_id}")
+            except Exception as e:
+                msg = str(e)
+                if "no longer any instances available" in msg.lower() or "no instances" in msg.lower():
+                    still_pending.append(protein)
+                else:
+                    print(f"  FAILED {pod_name} (permanent): {e}")
+            time.sleep(0.5)
+
+        pending = still_pending
+        if pending:
+            wait = min(30 * attempt, 300)
+            print(f"  [{attempt}] {len(pending)} pods still pending ({pending}). "
+                  f"Retrying in {wait}s...")
+            time.sleep(wait)
+
+    print("All pods launched.")
 
 
 if __name__ == "__main__":
