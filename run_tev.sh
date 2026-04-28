@@ -37,7 +37,7 @@ else
     echo "RUN  tev_onehot rf_ts_k5"
     python3 experiments/run_batch.py --method rf_ts_k5 --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_onehot / dnn_ts
@@ -49,7 +49,7 @@ else
     echo "RUN  tev_onehot dnn_ts"
     python3 experiments/run_batch.py --method dnn_ts --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_onehot / dnn_ts_s
@@ -61,7 +61,7 @@ else
     echo "RUN  tev_onehot dnn_ts_s"
     python3 experiments/run_batch.py --method dnn_ts_s --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_mean / rf_ts_k5
@@ -73,7 +73,7 @@ else
     echo "RUN  tev_esmc_mean rf_ts_k5"
     python3 experiments/run_batch.py --method rf_ts_k5 --landscapes tev_esmc_mean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_mean / dnn_ts
@@ -85,7 +85,7 @@ else
     echo "RUN  tev_esmc_mean dnn_ts"
     python3 experiments/run_batch.py --method dnn_ts --landscapes tev_esmc_mean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_mean / dnn_ts_s
@@ -97,7 +97,7 @@ else
     echo "RUN  tev_esmc_mean dnn_ts_s"
     python3 experiments/run_batch.py --method dnn_ts_s --landscapes tev_esmc_mean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_sitemean / rf_ts_k5
@@ -109,7 +109,7 @@ else
     echo "RUN  tev_esmc_sitemean rf_ts_k5"
     python3 experiments/run_batch.py --method rf_ts_k5 --landscapes tev_esmc_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_sitemean / dnn_ts
@@ -121,7 +121,7 @@ else
     echo "RUN  tev_esmc_sitemean dnn_ts"
     python3 experiments/run_batch.py --method dnn_ts --landscapes tev_esmc_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_sitemean / dnn_ts_s
@@ -133,7 +133,7 @@ else
     echo "RUN  tev_esmc_sitemean dnn_ts_s"
     python3 experiments/run_batch.py --method dnn_ts_s --landscapes tev_esmc_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / rf_ts_k5
@@ -145,7 +145,7 @@ else
     echo "RUN  tev_esm2_15b rf_ts_k5"
     python3 experiments/run_batch.py --method rf_ts_k5 --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_ts
@@ -157,7 +157,7 @@ else
     echo "RUN  tev_esm2_15b dnn_ts"
     python3 experiments/run_batch.py --method dnn_ts --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_ts_s
@@ -169,7 +169,7 @@ else
     echo "RUN  tev_esm2_15b dnn_ts_s"
     python3 experiments/run_batch.py --method dnn_ts_s --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b_sitemean / rf_ts_k5
@@ -181,7 +181,7 @@ else
     echo "RUN  tev_esm2_15b_sitemean rf_ts_k5"
     python3 experiments/run_batch.py --method rf_ts_k5 --landscapes tev_esm2_15b_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b_sitemean / dnn_ts
@@ -193,7 +193,7 @@ else
     echo "RUN  tev_esm2_15b_sitemean dnn_ts"
     python3 experiments/run_batch.py --method dnn_ts --landscapes tev_esm2_15b_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b_sitemean / dnn_ts_s
@@ -205,7 +205,7 @@ else
     echo "RUN  tev_esm2_15b_sitemean dnn_ts_s"
     python3 experiments/run_batch.py --method dnn_ts_s --landscapes tev_esm2_15b_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_onehot / random
@@ -217,7 +217,7 @@ else
     echo "RUN  tev_onehot random"
     python3 experiments/run_batch.py --method random --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8  
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_greedy
@@ -229,7 +229,7 @@ else
     echo "RUN  tev_esm2_15b dnn_greedy"
     python3 experiments/run_batch.py --method dnn_greedy --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8  --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_greedy_s
@@ -241,7 +241,7 @@ else
     echo "RUN  tev_esm2_15b dnn_greedy_s"
     python3 experiments/run_batch.py --method dnn_greedy_s --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8  --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_ucb
@@ -253,7 +253,7 @@ else
     echo "RUN  tev_esm2_15b dnn_ucb"
     python3 experiments/run_batch.py --method dnn_ucb --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_ucb_s
@@ -265,7 +265,7 @@ else
     echo "RUN  tev_esm2_15b dnn_ucb_s"
     python3 experiments/run_batch.py --method dnn_ucb_s --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_ei
@@ -277,7 +277,7 @@ else
     echo "RUN  tev_esm2_15b dnn_ei"
     python3 experiments/run_batch.py --method dnn_ei --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / dnn_ei_s
@@ -289,7 +289,7 @@ else
     echo "RUN  tev_esm2_15b dnn_ei_s"
     python3 experiments/run_batch.py --method dnn_ei_s --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_sitemean / rf_ts_k5
@@ -301,7 +301,7 @@ else
     echo "RUN  tev_esmc_sitemean rf_ts_k5"
     python3 experiments/run_batch.py --method rf_ts_k5 --landscapes tev_esmc_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration 
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esmc_sitemean / dnn_ts
@@ -313,7 +313,7 @@ else
     echo "RUN  tev_esmc_sitemean dnn_ts"
     python3 experiments/run_batch.py --method dnn_ts --landscapes tev_esmc_sitemean --batch_sizes 96 --seeds 100 --workers 8 --track_calibration 
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_onehot / rf_ts_k1
@@ -325,7 +325,7 @@ else
     echo "RUN  tev_onehot rf_ts_k1"
     python3 experiments/run_batch.py --method rf_ts_k1 --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_onehot / rf_ts_k10
@@ -337,7 +337,7 @@ else
     echo "RUN  tev_onehot rf_ts_k10"
     python3 experiments/run_batch.py --method rf_ts_k10 --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_onehot / evolvepro
@@ -349,7 +349,7 @@ else
     echo "RUN  tev_onehot evolvepro"
     python3 experiments/run_batch.py --method evolvepro --landscapes tev_onehot --batch_sizes 96 --seeds 100 --workers 8  --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / rf_ts_k1
@@ -361,7 +361,7 @@ else
     echo "RUN  tev_esm2_15b rf_ts_k1"
     python3 experiments/run_batch.py --method rf_ts_k1 --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / rf_ts_k10
@@ -373,7 +373,7 @@ else
     echo "RUN  tev_esm2_15b rf_ts_k10"
     python3 experiments/run_batch.py --method rf_ts_k10 --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8 --track_calibration --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 # tev_esm2_15b / evolvepro
@@ -385,7 +385,7 @@ else
     echo "RUN  tev_esm2_15b evolvepro"
     python3 experiments/run_batch.py --method evolvepro --landscapes tev_esm2_15b --batch_sizes 96 --seeds 100 --workers 8  --double_mut_init
     cp results/raw/*.jsonl /workspace/results/raw/ 2>/dev/null || true
-    cp results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
+    mv results/calibration/*.npz /workspace/results/calibration/ 2>/dev/null || true
 fi
 
 echo "=== tev done ==="

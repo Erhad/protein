@@ -732,7 +732,11 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
 
     # ── Save calibration data ─────────────────────────────────────────────────
     if track_calibration and cal_rounds:
-        cal_dir  = os.path.join(ROOT, "results", "calibration")
+        # Save directly to workspace if available, otherwise use local
+        if os.path.exists("/workspace"):
+            cal_dir = "/workspace/v1/results/calibration"
+        else:
+            cal_dir = os.path.join(ROOT, "results", "calibration")
         os.makedirs(cal_dir, exist_ok=True)
         cal_path = os.path.join(cal_dir, f"{run_name}_seed{seed}.npz")
         save_dict = {
