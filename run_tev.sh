@@ -7,10 +7,9 @@ WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
 git clone -q https://github.com/Erhad/protein.git $WORKDIR
 cd $WORKDIR/v1
 
-curl -sS https://bootstrap.pypa.io/get-pip.py | python3
-python3 -m pip install numpy -q
-python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
-python3 -m pip install pandas scikit-learn joblib -q
+pip3 install numpy -q
+pip3 install torch --index-url https://download.pytorch.org/whl/cpu -q
+pip3 install pandas scikit-learn joblib -q
 
 VOL=/workspace/v1/data
 find "$VOL" \( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \) | while read src; do
