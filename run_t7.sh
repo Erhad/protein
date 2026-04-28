@@ -7,7 +7,7 @@ WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
 git clone -q https://github.com/Erhad/protein.git $WORKDIR
 cd $WORKDIR/v1
 
-apt-get install -y python3-pip python3-venv -q
+apt-get update -q && apt-get install -y python3-pip python3-venv -q
 python3 -m venv /workspace/venv
 source /workspace/venv/bin/activate
 pip install numpy torch --index-url https://download.pytorch.org/whl/cpu pandas scikit-learn joblib -q
