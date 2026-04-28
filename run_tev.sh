@@ -9,7 +9,7 @@ cd $WORKDIR/v1
 
 python3.13 -m pip install numpy -q
 python3.13 -m pip install torch --index-url https://download.pytorch.org/whl/cpu -q
-python3.13 -m pip install pandas scikit-learn joblib -q
+python3.13 -m pip install pandas scikit-learn joblib six python-dateutil -q
 
 VOL=/workspace/v1/data
 find "$VOL" \( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \) | while read src; do
