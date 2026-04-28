@@ -9,7 +9,8 @@ cd $WORKDIR/v1
 
 PY_VER=$(python3 -c "import sys; print('{}.{}'.format(sys.version_info.major, sys.version_info.minor))")
 curl -sS -f "https://bootstrap.pypa.io/pip/${PY_VER}/get-pip.py" | python3 || curl -sS "https://bootstrap.pypa.io/get-pip.py" | python3
-python3 -m pip install numpy torch --index-url https://download.pytorch.org/whl/cpu pandas scikit-learn joblib -q --break-system-packages 2>/dev/null || python3 -m pip install numpy torch --index-url https://download.pytorch.org/whl/cpu pandas scikit-learn joblib -q
+python3 -m pip install --prefer-binary numpy pandas scikit-learn joblib -q --break-system-packages 2>/dev/null || python3 -m pip install --prefer-binary numpy pandas scikit-learn joblib -q
+python3 -m pip install --prefer-binary torch --index-url https://download.pytorch.org/whl/cpu -q --break-system-packages 2>/dev/null || python3 -m pip install --prefer-binary torch --index-url https://download.pytorch.org/whl/cpu -q
 
 VOL=/workspace/v1/data
 find "$VOL" \( -name "*.npy" -o -name "*.npz" -o -name "*.csv" \) | while read src; do
