@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+exec > >(tee /workspace/run_trpb.log) 2>&1
 echo "=== trpb pod starting — 30 jobs ==="
 
 WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)

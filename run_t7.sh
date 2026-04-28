@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+exec > >(tee /workspace/run_t7.log) 2>&1
 echo "=== t7 pod starting — 30 jobs ==="
 
 WORKDIR=$(mktemp -d /tmp/protein_XXXXXXXXXX)
