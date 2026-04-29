@@ -89,7 +89,7 @@ def main():
         results = [_run_job(job) for job in jobs]
     else:
         with Pool(args.workers, initializer=_init_worker, initargs=(preloaded,)) as pool:
-            results = pool.map(_run_job, jobs)
+            results = pool.map(_run_job, jobs, chunksize=1)
 
     done = sum(1 for r in results if r)
     print(f"\nCompleted {done}/{len(jobs)} runs.")
