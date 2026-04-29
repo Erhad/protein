@@ -560,7 +560,10 @@ def load_landscape(landscape: str) -> tuple:
 
 
 def make_method(method: str, seed: int):
-    if method == "evolvepro":
+    if method == "random":
+        from methods.random_baseline import RandomBaseline
+        return RandomBaseline(seed=seed)
+    elif method == "evolvepro":
         from methods.evolvepro import EVOLVEpro
         return EVOLVEpro(seed=seed)
     elif method == "rf_greedy":
