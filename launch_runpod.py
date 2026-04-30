@@ -6,6 +6,9 @@ Usage:
     export RUNPOD_API_KEY=your_key
     python launch_runpod.py --volume_id <id>
 
+    # Tail pods (G4→G3→G2, to run in parallel with existing G1 pods):
+    python launch_runpod.py --volume_id <id> --tail
+
     # Dry run:
     python launch_runpod.py --volume_id <id> --dry_run
 """
@@ -20,8 +23,12 @@ CALIBRATION_METHODS = {"rf_ts_k1", "rf_ts_k5", "rf_ts_k10",
                        "dnn_ucb", "dnn_ucb_s",
                        "dnn_ei", "dnn_ei_s"}
 
-def protein_subjobs(p):
-    """Return ordered list of (landscape, method, dmzs) for one protein."""
+def protein_subjobs(p, tail=False):
+    """Return ordered list of (landscape, method, dmzs) for one protein.
+
+    tail=True: G4→G3→G2 order (for a second pod running in parallel with
+    an existing G1 pod; skip logic prevents duplicate work).
+    """
     emb = {
         "onehot":            f"{p}_onehot",
         "esmc_mean":         f"{p}_esmc_mean",
@@ -29,28 +36,32 @@ def protein_subjobs(p):
         "esm2_15b":          f"{p}_esm2_15b",
         "esm2_15b_sitemean": f"{p}_esm2_15b_sitemean",
     }
-    jobs = []
-    # G1: embedding comparison — DMZS
+    g1 = []
     for landscape in emb.values():
         for method in ["rf_ts_k5", "dnn_ts", "dnn_ts_s"]:
-            jobs.append((landscape, method, True))
-    # G1: random baseline
-    jobs.append((f"{p}_onehot", "random", False))
-    # G2: acquisition sweep — esm2_15b, DMZS
+            g1.append((landscape, method, True))
+    g1.append((f"{p}_onehot", "random", False))
+
+    g2 = []
     for method in ["dnn_greedy", "dnn_greedy_s", "dnn_ucb", "dnn_ucb_s", "dnn_ei", "dnn_ei_s"]:
-        jobs.append((f"{p}_esm2_15b", method, True))
-    # G3: init ablation — esmc_sitemean, random init
+        g2.append((f"{p}_esm2_15b", method, True))
+
+    g3 = []
     for method in ["rf_ts_k5", "dnn_ts"]:
-        jobs.append((f"{p}_esmc_sitemean", method, False))
-    # G4: k-sweep — onehot + esm2_15b, DMZS
+        g3.append((f"{p}_esmc_sitemean", method, False))
+
+    g4 = []
     for landscape in [f"{p}_onehot", f"{p}_esm2_15b"]:
         for method in ["rf_ts_k1", "rf_ts_k10", "evolvepro"]:
-            jobs.append((landscape, method, True))
-    return jobs
+            g4.append((landscape, method, True))
+
+    if tail:
+        return g4 + g3 + g2
+    return g1 + g2 + g3 + g4
 
 
-def make_startup_cmd(protein, seeds=100, workers=4):
-    subjobs = protein_subjobs(protein)
+def make_startup_cmd(protein, seeds=100, workers=4, tail=False):
+    subjobs = protein_subjobs(protein, tail=tail)
 
     # Build the per-subjob run blocks
     run_blocks = []
@@ -180,29 +191,31 @@ def main():
                         help="RunPod CPU instance type (e.g. cpu3g-8-32, cpu3g-4-16)")
     parser.add_argument("--proteins",    nargs="+", default=PROTEINS,
                         help="Subset of proteins to launch (default: all 4)")
+    parser.add_argument("--tail",         action="store_true",
+                        help="Run G4→G3→G2 (tail pod, parallel with existing G1 pod)")
     parser.add_argument("--dry_run",     action="store_true")
     args = parser.parse_args()
 
-    api_key = os.environ["RUNPOD_API_KEY"]
-
+    pod_suffix = "-tail" if args.tail else ""
     print(f"Proteins: {args.proteins}  Instance: {args.instance_id}  "
-          f"Workers: {args.workers}  Seeds: {args.seeds}")
+          f"Workers: {args.workers}  Seeds: {args.seeds}  Tail: {args.tail}")
 
     if args.dry_run:
         for p in args.proteins:
-            subjobs = protein_subjobs(p)
+            subjobs = protein_subjobs(p, tail=args.tail)
             print(f"\n{p}: {len(subjobs)} jobs")
             for landscape, method, dmzs in subjobs:
                 print(f"  {landscape:35s} {method:20s} dmzs={dmzs}")
         return
 
+    api_key = os.environ["RUNPOD_API_KEY"]
     print("Fetching currently running pods...")
     running_names = get_running_pod_names(api_key)
     if running_names:
         print(f"  Already running: {sorted(running_names)}")
 
-    pending = [p for p in args.proteins if f"protein-{p}" not in running_names]
-    cmds    = {p: make_startup_cmd(p, seeds=args.seeds, workers=args.workers)
+    pending = [p for p in args.proteins if f"protein-{p}{pod_suffix}" not in running_names]
+    cmds    = {p: make_startup_cmd(p, seeds=args.seeds, workers=args.workers, tail=args.tail)
                for p in pending}
 
     attempt = 0
@@ -210,7 +223,7 @@ def main():
         attempt += 1
         still_pending = []
         for protein in pending:
-            pod_name = f"protein-{protein}"
+            pod_name = f"protein-{protein}{pod_suffix}"
             try:
                 pod = deploy_cpu_pod(api_key, pod_name, cmds[protein], args.volume_id,
                                      instance_id=args.instance_id)
