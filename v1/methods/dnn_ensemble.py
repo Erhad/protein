@@ -81,17 +81,19 @@ class DNNEnsembleOptimizer:
     def _train_one(self, model: _DNN, X_t: torch.Tensor, y_t: torch.Tensor) -> _DNN:
         opt = torch.optim.Adam(model.parameters(), lr=self.lr)
         mse = nn.MSELoss()
-        losses: list[float] = []
         model.train()
+        w = self.early_stop_w
+        losses: list[float] = []
+        best_pre_window = float("inf")  # running min of losses before the sliding window
         for i in range(self.max_iter):
             opt.zero_grad()
             loss = mse(model(X_t), y_t)
             loss.backward()
             opt.step()
             losses.append(loss.item())
-            if i > self.early_stop_w:
-                w = self.early_stop_w
-                if min(losses[i - w + 1:]) >= min(losses[:i - w + 1]):
+            if i >= w:
+                best_pre_window = min(best_pre_window, losses[i - w])  # O(1) update
+                if min(losses[i - w + 1:]) >= best_pre_window:          # O(w) window check
                     break
         model.eval()
         return model
@@ -116,9 +118,12 @@ class DNNEnsembleOptimizer:
 
     def _pool_preds(self, X_pool: np.ndarray) -> np.ndarray:
         """Returns shape (n_pool, n_ensemble) — raw predictions from each model."""
-        X_t = torch.tensor(X_pool).float()
+        # from_numpy shares memory (no copy) when X_pool is already float32 + C-contiguous,
+        # which is guaranteed when run_single pre-converts emb to float32 before slicing.
+        arr = np.asarray(X_pool, dtype=np.float32)
+        X_t = torch.from_numpy(arr)
         with torch.no_grad():
-            preds = np.stack([m(X_t).numpy() for m in self._models], axis=1)
+            preds = torch.stack([m(X_t) for m in self._models], dim=1).numpy()
         return preds  # (n_pool, n_ensemble)
 
     def select(self, X_pool: np.ndarray, batch_size: int) -> list[int]:

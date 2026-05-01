@@ -664,9 +664,9 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
     print(f"[{run_name}|seed={seed}]", flush=True)
 
     np.random.seed(seed)
-    import pandas as pd
-    df = pd.read_csv(os.path.join(ROOT, LANDSCAPE_CFG[landscape]["fitness_csv"]))
     emb, fitness = _preloaded if _preloaded is not None else load_landscape(landscape)
+    if emb.dtype != np.float32:
+        emb = emb.astype(np.float32)  # convert once; avoids repeated float16→float32 inside DNN
     n_total = len(fitness)
     opt = make_method(method, seed)
     rng = np.random.default_rng(seed)
@@ -675,8 +675,12 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
     if cluster_init:
         labeled_idx = load_cluster_init(landscape, INITIAL_N, rng)
     elif double_mut_init:
+        import pandas as pd
+        df = pd.read_csv(os.path.join(ROOT, LANDSCAPE_CFG[landscape]["fitness_csv"]))
         labeled_idx = load_double_mut_zs_init(landscape, INITIAL_N, df["protein"].values, rng)
     elif zs_predictor:
+        import pandas as pd
+        df = pd.read_csv(os.path.join(ROOT, LANDSCAPE_CFG[landscape]["fitness_csv"]))
         labeled_idx = list(load_zs_init(landscape, zs_predictor, df["protein"].values).tolist())
     else:
         labeled_idx = list(rng.choice(n_total, size=INITIAL_N, replace=False).tolist())

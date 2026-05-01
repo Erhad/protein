@@ -27,14 +27,15 @@ ALL_BATCH_SIZES = [1, 16, 96]
 
 _worker_preloaded = None
 
-def _init_worker(preloaded):
+def _init_worker(preloaded, limit_threads=True):
     global _worker_preloaded
     _worker_preloaded = preloaded
-    try:
-        import torch
-        torch.set_num_threads(1)
-    except ImportError:
-        pass
+    if limit_threads:
+        try:
+            import torch
+            torch.set_num_threads(1)
+        except ImportError:
+            pass
 
 
 def _run_job(args):
@@ -85,7 +86,7 @@ def main():
         preloaded = None  # multi-landscape: fall back to per-call loading
 
     if args.workers == 1:
-        _init_worker(preloaded)
+        _init_worker(preloaded, limit_threads=False)  # no nested parallelism; let torch use all cores
         results = [_run_job(job) for job in jobs]
     else:
         with Pool(args.workers, initializer=_init_worker, initargs=(preloaded,)) as pool:
