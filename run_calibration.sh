@@ -29,13 +29,14 @@ find /workspace/v1/results/raw -name "*.jsonl" | while read src; do
     ln -sf "$src" "results/raw/$(basename $src)"
 done
 
-# Helper: run cal_only for a landscape+method, copy npz on completion
+# Helper: run cal_only for a landscape+method+init, copy npz on completion
 run_cal() {
-    local landscape=$1 method=$2
-    echo "CAL  $landscape  $method"
+    local landscape=$1 method=$2 init_flag=$3
+    echo "CAL  $landscape  $method  $init_flag"
     python3 experiments/run_batch.py \
         --method "$method" --landscapes "$landscape" \
-        --batch_sizes 96 --seeds 100 --workers 1 --cal_only
+        --batch_sizes 96 --seeds 100 --workers 1 --cal_only $init_flag
+    touch /tmp/.cal_marker
     find results/calibration -name "*.npz" -newer /tmp/.cal_marker 2>/dev/null | while read f; do
         cp -n "$f" /workspace/v1/results/calibration/ 2>/dev/null || true
     done
@@ -43,13 +44,14 @@ run_cal() {
 touch /tmp/.cal_marker
 
 # ── RF k-sweep: onehot + esm15b_mean, k=1/5/10/100, all 4 proteins ──────────
+# All dmzs runs (filenames end in _dmzs_96) → must pass --double_mut_init
 for PROT in gb1 trpb t7 tev; do
     for LAND_SUFFIX in onehot esm2_15b; do
         LAND="${PROT}_${LAND_SUFFIX}"
         for METHOD in rf_ts_k1 rf_ts_k5 rf_ts_k10; do
-            run_cal "$LAND" "$METHOD"
+            run_cal "$LAND" "$METHOD" --double_mut_init
         done
-        run_cal "$LAND" evolvepro   # rfk100 greedy
+        run_cal "$LAND" evolvepro --double_mut_init   # rfk100 greedy
     done
 done
 
@@ -57,7 +59,7 @@ done
 for PROT in gb1 trpb t7 tev; do
     LAND="${PROT}_esm2_15b"
     for METHOD in dnn_ts dnn_greedy dnn_ucb dnn_ei dnn_ts_s dnn_greedy_s dnn_ucb_s dnn_ei_s; do
-        run_cal "$LAND" "$METHOD"
+        run_cal "$LAND" "$METHOD" --double_mut_init
     done
 done
 
