@@ -39,10 +39,10 @@ def _init_worker(preloaded, limit_threads=True):
 
 
 def _run_job(args):
-    landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init, track_calibration = args
+    landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init, track_calibration, cal_only = args
     try:
         return run(landscape, method, batch_size, seed, zs_predictor, cluster_init, double_mut_init,
-                   track_calibration=track_calibration, _preloaded=_worker_preloaded)
+                   track_calibration=track_calibration, cal_only=cal_only, _preloaded=_worker_preloaded)
     except Exception as e:
         print(f"  FAILED {landscape} {method} {batch_size} seed={seed}: {e}")
         return None
@@ -63,11 +63,13 @@ def main():
                         help="Li et al ds-ev: sample from <=2-mut variants proportional to ev ZS score")
     parser.add_argument("--track_calibration", action="store_true",
                         help="Save RF/DNN calibration stats per round to results/calibration/")
+    parser.add_argument("--cal_only", action="store_true",
+                        help="Re-run only to save calibration npz; skip if npz exists, never touch JSONL")
     args = parser.parse_args()
 
     jobs = [
         (landscape, args.method, batch_size, seed,
-         args.zs_predictor, args.cluster_init, args.double_mut_init, args.track_calibration)
+         args.zs_predictor, args.cluster_init, args.double_mut_init, args.track_calibration, args.cal_only)
         for landscape, batch_size, seed
         in product(args.landscapes, args.batch_sizes, range(args.seeds))
     ]

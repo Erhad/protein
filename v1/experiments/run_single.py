@@ -650,16 +650,30 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
         zs_predictor: str = None, cluster_init: bool = False,
         double_mut_init: bool = False,
         track_calibration: bool = False,
+        cal_only: bool = False,
         _preloaded: tuple = None) -> dict:
     # Check before doing any computation
     run_name = _make_run_name(landscape, method, batch_size, zs_predictor, cluster_init, double_mut_init)
     out_path = os.path.join(ROOT, "results", "raw", f"{run_name}.jsonl")
-    if os.path.exists(out_path):
-        with open(out_path) as f:
-            existing_seeds = {json.loads(line)["seed"] for line in f}
-        if seed in existing_seeds:
-            print(f"  [{run_name}|seed={seed}] already done, skipping.")
+
+    if cal_only:
+        # Skip if calibration npz already exists for this seed
+        if os.path.exists("/workspace"):
+            cal_dir = "/workspace/v1/results/calibration"
+        else:
+            cal_dir = os.path.join(ROOT, "results", "calibration")
+        cal_path = os.path.join(cal_dir, f"{run_name}_seed{seed}.npz")
+        if os.path.exists(cal_path):
+            print(f"  [{run_name}|seed={seed}] cal already exists, skipping.")
             return None
+        track_calibration = True  # always track in cal_only mode
+    else:
+        if os.path.exists(out_path):
+            with open(out_path) as f:
+                existing_seeds = {json.loads(line)["seed"] for line in f}
+            if seed in existing_seeds:
+                print(f"  [{run_name}|seed={seed}] already done, skipping.")
+                return None
 
     print(f"[{run_name}|seed={seed}]", flush=True)
 
@@ -758,6 +772,9 @@ def run(landscape: str, method: str, batch_size: int, seed: int,
                     save_dict[f"round{r}_{key}"] = val
         np.savez_compressed(cal_path, **save_dict)
         print(f"  Calibration saved → {cal_path}", flush=True)
+
+    if cal_only:
+        return None  # don't touch JSONL
 
     record = {
         "landscape":       landscape,
